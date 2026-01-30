@@ -29,7 +29,7 @@ const Login = ({ onLogin }: LoginProps) => {
     setIsLoading(true);
 
     try {
-      const result = loginUser(email, password);
+      const result = await loginUser(email, password);
       if (result.success && result.user) {
         onLogin(result.user);
       } else {

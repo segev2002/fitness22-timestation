@@ -223,7 +223,57 @@ export const validateAdminAsync = async (user: User): Promise<boolean> => {
   return user.isAdmin === true;
 };
 
-export const loginUser = (email: string, password: string): { success: boolean; user?: User; error?: string } => {
+export const loginUser = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+  // If Supabase is configured, try to authenticate against the database first
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const dbUser = await supabaseUsers.getByEmail(email.toLowerCase());
+      if (!dbUser) {
+        // Fall back to localStorage if DB user not found
+        // but keep the explicit not found response for clarity
+        return { success: false, error: 'userNotFound' };
+      }
+
+      if (dbUser.isDisabled) {
+        return { success: false, error: 'userDisabled' };
+      }
+
+      // NOTE: this project stores plain-text passwords by default.
+      // If you add hashing later, update this check accordingly.
+      if (dbUser.password !== password) {
+        return { success: false, error: 'incorrectPassword' };
+      }
+
+      // Sync localStorage users list with DB (optional)
+      try {
+        const users = getUsers();
+        const idx = users.findIndex(u => u.id === dbUser.id);
+        if (idx === -1) {
+          users.push(dbUser);
+        } else {
+          users[idx] = dbUser;
+        }
+        saveUsers(users);
+      } catch (e) {
+        // ignore local sync errors
+      }
+
+      // Auto-grant admin to primary admin email locally
+      if (isPrimaryAdmin(dbUser.email) && !dbUser.isAdmin) {
+        dbUser.isAdmin = true;
+        // attempt to update DB copy (best-effort)
+        try { await supabaseUsers.update(dbUser); } catch (_) {}
+      }
+
+      setCurrentUser(dbUser);
+      return { success: true, user: dbUser };
+    } catch (error) {
+      console.error('Supabase login error:', error);
+      // Fall back to localStorage below
+    }
+  }
+
+  // Fallback: localStorage-based authentication (legacy)
   const users = getUsers();
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   

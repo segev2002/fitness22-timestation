@@ -302,6 +302,39 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
   return { success: true, user };
 };
 
+/**
+ * Migrate any users currently stored in localStorage into Supabase.
+ * This is a convenience migration for projects that started with localStorage.
+ * It will create any users that do not already exist in the database.
+ */
+export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; skipped: number }> => {
+  if (!isSupabaseConfigured() || !supabase) return { created: 0, skipped: 0 };
+
+  const localUsers = getUsers();
+  let created = 0;
+  let skipped = 0;
+
+  for (const u of localUsers) {
+    try {
+      const existing = await supabaseUsers.getByEmail(u.email);
+      if (existing) {
+        skipped++;
+        continue;
+      }
+
+      // Create the user in Supabase (best-effort)
+      const ok = await supabaseUsers.create(u);
+      if (ok) created++;
+      else skipped++;
+    } catch (err) {
+      console.error('Failed to migrate user to Supabase:', u.email, err);
+      skipped++;
+    }
+  }
+
+  return { created, skipped };
+};
+
 // Public registration is disabled - only admins can create users
 // This function is kept for backward compatibility but should only be called by admins
 export const registerUser = (name: string, email: string, password: string): { success: boolean; user?: User; error?: string } => {

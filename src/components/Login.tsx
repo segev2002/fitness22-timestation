@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { loginUser } from '../utils/auth';
-import FitnessLogo from './FitnessLogo';
 import type { User } from '../types';
 
 interface LoginProps {
@@ -87,7 +86,11 @@ const Login = ({ onLogin }: LoginProps) => {
           {/* Header */}
           <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center justify-center mb-4">
-              <FitnessLogo className="h-8 md:h-10 w-auto text-[#39FF14]" />
+              <img
+                src="/Logo_fitness.png"
+                alt="Fitness22"
+                className="h-8 md:h-10 w-auto"
+              />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-[var(--f22-text)] mb-2 md:mb-3">{t.appTitle}</h1>
             <p className="text-[var(--f22-text-muted)] text-base md:text-lg">{t.appSubtitle}</p>

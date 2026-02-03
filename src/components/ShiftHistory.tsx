@@ -189,12 +189,12 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                       <div className="text-[var(--f22-text-muted)] text-xs">{getDayName(date)}</div>
                     </td>
                     <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
-                      <span className="bg-[#39FF14]/20 text-[#39FF14] px-3 py-1.5 rounded text-xs md:text-sm font-medium">
+                      <span className="bg-[#39FF14] text-[#0D0D0D] px-3 py-1.5 rounded text-xs md:text-sm font-medium">
                         {shift.userName}
                       </span>
                     </td>
                     <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
-                      <span className="text-[#39FF14] font-semibold bg-[#39FF14]/10 px-3 py-1.5 rounded text-sm">{checkInTime}</span>
+                      <span className="text-[#0D0D0D] font-semibold bg-[#39FF14] px-3 py-1.5 rounded text-sm">{checkInTime}</span>
                     </td>
                     <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
                       <span className="text-red-400 font-semibold bg-red-500/10 px-3 py-1.5 rounded text-sm">{checkOutTime}</span>

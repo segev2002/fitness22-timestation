@@ -198,7 +198,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
 
             {/* Center: Logo/Title */}
             <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-4 flex-shrink-0">
-              <FitnessLogo className="h-4 sm:h-7 w-auto text-[#39FF14]" />
+              <FitnessLogo className="h-4 sm:h-7 w-10 sm:w-12 text-[#39FF14] shrink-0" />
               <span className="hidden sm:block text-[var(--f22-text-muted)] text-2xl font-light">|</span>
               <h1 className="text-sm sm:text-xl font-bold text-[var(--f22-text)]">{t.appTitle}</h1>
             </div>

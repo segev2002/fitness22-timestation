@@ -90,6 +90,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 src="/Logo_fitness.png" 
                 alt="Fitness22" 
                 className="h-8 md:h-10 w-auto"
+                style={{ filter: 'var(--f22-logo-filter)' }}
               />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-[var(--f22-text)] mb-2 md:mb-3">{t.appTitle}</h1>

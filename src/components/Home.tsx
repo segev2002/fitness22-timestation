@@ -7,6 +7,7 @@ import {
   setActiveShift,
   generateId,
   getShiftsForMonth,
+  syncShiftsFromSupabase,
 } from '../utils/storage';
 import ShiftHistory from './ShiftHistory';
 
@@ -23,6 +24,14 @@ const Home = ({ user }: HomeProps) => {
   const [isInShift, setIsInShift] = useState(false);
   const [breakMinutes, setBreakMinutes] = useState(0);
 
+  const loadShifts = useCallback(async () => {
+    await syncShiftsFromSupabase();
+    const now = new Date();
+    const monthShifts = getShiftsForMonth(now.getFullYear(), now.getMonth())
+      .filter(s => s.userId === user.id);
+    setShifts(monthShifts);
+  }, [user.id]);
+
   // Load initial state including persisted note and dayType
   useEffect(() => {
     const active = getActiveShift();
@@ -35,8 +44,8 @@ const Home = ({ user }: HomeProps) => {
       if (savedNote) setNote(savedNote);
       if (savedDayType) setDayType(savedDayType as typeof dayType);
     }
-    loadShifts();
-  }, [user.id]);
+    void loadShifts();
+  }, [user.id, loadShifts]);
 
   // Persist note when it changes (only when in shift)
   useEffect(() => {
@@ -51,13 +60,6 @@ const Home = ({ user }: HomeProps) => {
       localStorage.setItem(`shift_dayType_${user.id}`, dayType);
     }
   }, [dayType, isInShift, user.id]);
-
-  const loadShifts = useCallback(() => {
-    const now = new Date();
-    const monthShifts = getShiftsForMonth(now.getFullYear(), now.getMonth())
-      .filter(s => s.userId === user.id);
-    setShifts(monthShifts);
-  }, [user.id]);
 
   const handleCheckIn = () => {
     const now = new Date();
@@ -121,7 +123,7 @@ const Home = ({ user }: HomeProps) => {
     // Clear persisted note and dayType
     localStorage.removeItem(`shift_note_${user.id}`);
     localStorage.removeItem(`shift_dayType_${user.id}`);
-    loadShifts();
+    void loadShifts();
   };
 
   // Sick Day button: immediately ends shift with 9 working hours and "Sick at home" note
@@ -156,7 +158,7 @@ const Home = ({ user }: HomeProps) => {
     // Clear persisted note and dayType
     localStorage.removeItem(`shift_note_${user.id}`);
     localStorage.removeItem(`shift_dayType_${user.id}`);
-    loadShifts();
+    void loadShifts();
     alert(t.sickDayAdded);
   };
 
@@ -225,7 +227,7 @@ const Home = ({ user }: HomeProps) => {
                     onClick={() => setDayType(type.value as typeof dayType)}
                     className={`px-4 py-3 min-h-[48px] rounded-lg border-2 transition-all font-medium ${
                       dayType === type.value
-                        ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
+                        ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
                         : 'border-[var(--f22-border)] hover:border-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)]'
                     }`}
                   >

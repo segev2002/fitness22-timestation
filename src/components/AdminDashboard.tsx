@@ -13,7 +13,7 @@ import {
   saveUsers,
   validateAdminAsync,
 } from '../utils/auth';
-import { getShifts, updateShift, deleteShift, getActiveShift } from '../utils/storage';
+import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase } from '../utils/storage';
 import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
 
@@ -74,7 +74,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     setUsers(getUsers());
   }, []);
 
-  const loadShifts = useCallback(() => {
+  const loadShifts = useCallback(async () => {
+    await syncShiftsFromSupabase();
     const [year, month] = selectedMonth.split('-').map(Number);
     const allShifts = getShifts().filter(s => {
       const shiftDate = new Date(s.date);
@@ -101,7 +102,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     if (!isAdminVerified) return;
     
     loadUsers();
-    loadShifts();
+  void loadShifts();
     loadActiveShifts();
     
     // Subscribe to realtime active shifts changes
@@ -116,7 +117,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
   useEffect(() => {
     if (isAdminVerified) {
-      loadShifts();
+      void loadShifts();
     }
   }, [selectedMonth, loadShifts, isAdminVerified]);
 
@@ -267,13 +268,13 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     
     updateShift(updatedShift);
     setEditingShift(null);
-    loadShifts();
+    void loadShifts();
   };
 
   const handleDeleteShift = (shiftId: string) => {
     if (confirm(t.confirmDelete)) {
       deleteShift(shiftId);
-      loadShifts();
+      void loadShifts();
     }
   };
 
@@ -326,7 +327,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-4 sm:p-6">
+        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-6 sm:p-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-[var(--f22-text)]">{t.userManagement}</h3>
             <button
@@ -406,27 +407,27 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
           {/* Users List */}
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full border-separate border-spacing-y-3">
               <thead>
-                <tr className="border-b border-[var(--f22-border)]">
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.fullName}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.email}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.department}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.admin}</th>
-                  {isPrimary && <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.actions}</th>}
+                <tr>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.fullName}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.email}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.department}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.admin}</th>
+                  {isPrimary && <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.actions}</th>}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} className={`border-b border-[var(--f22-border)] ${u.isDisabled ? 'opacity-50' : ''}`}>
-                    <td className="py-3 px-2 text-[var(--f22-text)]">
+                  <tr key={u.id} className={`${u.isDisabled ? 'opacity-50' : ''}`}>
+                    <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-l border-[var(--f22-border)] rounded-l-lg">
                       {u.name}
                       {u.isDisabled && (
                         <span className="ml-2 bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-xs">{t.userDisabledLabel}</span>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-[var(--f22-text-muted)]">{u.email}</td>
-                    <td className="py-3 px-2">
+                    <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{u.email}</td>
+                    <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                       {isPrimary ? (
                         <select
                           value={u.department || ''}
@@ -443,7 +444,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                         <span className="text-[var(--f22-text-muted)]">{u.department || '-'}</span>
                       )}
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                       {isPrimaryAdmin(u.email) ? (
                         <span className="bg-[#39FF14]/20 text-[#39FF14] px-2 py-1 rounded text-sm">{t.primaryAdmin}</span>
                       ) : isUserAdmin(u) ? (
@@ -453,7 +454,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                       )}
                     </td>
                     {isPrimary && (
-                      <td className="py-3 px-2">
+                      <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-r border-[var(--f22-border)] rounded-r-lg">
                         <div className="flex gap-2 flex-wrap">
                           {!isPrimaryAdmin(u.email) && !u.isDisabled && (
                             <button
@@ -497,7 +498,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
       {/* Shifts Tab */}
       {activeTab === 'shifts' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-4 sm:p-6">
+        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-lg font-bold text-[var(--f22-text)]">{t.allShifts}</h3>
             <div className="flex gap-3">
@@ -585,17 +586,17 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
           {/* Shifts Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full border-separate border-spacing-y-3">
               <thead>
-                <tr className="border-b border-[var(--f22-border)]">
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.employee}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.date}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.checkInTime}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.checkOutTime}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.breakMinutes}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.duration}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.note}</th>
-                  <th className="text-left py-3 px-2 text-[var(--f22-text-muted)] font-medium">{t.actions}</th>
+                <tr>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.employee}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.date}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.checkInTime}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.checkOutTime}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.breakMinutes}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.duration}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.note}</th>
+                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -616,23 +617,23 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     }
                     
                     return (
-                      <tr key={shift.id} className="border-b border-[var(--f22-border)]">
-                        <td className="py-3 px-2 text-[var(--f22-text)]">{shift.userName}</td>
-                        <td className="py-3 px-2 text-[var(--f22-text-muted)]">
+                      <tr key={shift.id}>
+                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-l border-[var(--f22-border)] rounded-l-lg">{shift.userName}</td>
+                        <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                           {new Date(shift.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
                         </td>
-                        <td className="py-3 px-2 text-[var(--f22-text)]">{formatTime(shift.checkIn)}</td>
-                        <td className="py-3 px-2 text-[var(--f22-text)]">
+                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{formatTime(shift.checkIn)}</td>
+                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                           {shift.checkOut ? formatTime(shift.checkOut) : '-'}
                         </td>
-                        <td className="py-3 px-2 text-[var(--f22-text-muted)]">{breakMins || '-'}</td>
-                        <td className="py-3 px-2 text-[#39FF14] font-medium">
+                        <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{breakMins || '-'}</td>
+                        <td className="py-4 px-4 text-[#39FF14] font-medium bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                           {formatDuration(Math.max(0, netDuration))}
                         </td>
-                        <td className="py-3 px-2 text-[var(--f22-text-muted)] max-w-[200px] truncate">
+                        <td className="py-4 px-4 text-[var(--f22-text-muted)] max-w-[200px] truncate bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                           {displayNote || '-'}
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-r border-[var(--f22-border)] rounded-r-lg">
                           <div className="flex gap-2">
                             <button
                               onClick={() => openEditShift(shift)}
@@ -664,7 +665,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
       {/* Live Check-ins Tab */}
       {activeTab === 'live' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-4 sm:p-6">
+        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-6 sm:p-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-[var(--f22-text)] flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-[#39FF14] animate-pulse"></span>

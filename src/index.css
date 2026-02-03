@@ -13,6 +13,7 @@
   --f22-text: #111827;
   --f22-text-muted: #6B7280;
   --f22-border: #E5E7EB;
+  --f22-logo-filter: invert(1) brightness(0.3);
 
   /* Spacing Scale */
   --space-1: 4px;
@@ -45,6 +46,7 @@
   --f22-text: #FFFFFF;
   --f22-text-muted: #9CA3AF;
   --f22-border: #333333;
+  --f22-logo-filter: none;
 }
 
 * {

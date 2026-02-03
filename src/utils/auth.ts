@@ -1,5 +1,5 @@
 import type { User } from '../types';
-import { supabase, isSupabaseConfigured, supabaseUsers } from './supabase';
+import { supabase, isSupabaseConfigured, supabaseUsers, setSupabaseUserId } from './supabase';
 
 const USERS_KEY = 'attendance_users';
 const CURRENT_USER_KEY = 'attendance_current_user';
@@ -86,6 +86,7 @@ export const getCurrentUser = (): User | null => {
     
     // Return the validated user with latest data from users list
     // BUT preserve the session token for this session
+    setSupabaseUserId(validUser.id);
     return { ...validUser, sessionToken: storedToken } as User;
   } catch {
     console.error('Failed to parse current user - clearing session');
@@ -100,9 +101,11 @@ export const getCurrentUser = (): User | null => {
 const clearSession = (): void => {
   localStorage.removeItem(CURRENT_USER_KEY);
   localStorage.removeItem(SESSION_TOKEN_KEY);
+  setSupabaseUserId(null);
 };
 
 export const setCurrentUser = (user: User | null): void => {
+  setSupabaseUserId(user ? user.id : null);
   if (user) {
     // Generate new session token for this login
     const sessionToken = generateSessionToken();
@@ -126,6 +129,8 @@ export const validateSessionAsync = async (): Promise<User | null> => {
   if (!localUser) {
     return null;
   }
+
+  setSupabaseUserId(localUser.id);
   
   // If Supabase is configured, validate against database
   if (isSupabaseConfigured() && supabase) {
@@ -271,6 +276,8 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
       console.error('Supabase login error:', error);
       // Fall back to localStorage below
     }
+  } else {
+    console.error("Supabase not configured properly.");
   }
 
   // Fallback: localStorage-based authentication (legacy)

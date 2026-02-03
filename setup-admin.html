@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Admin User</title>
+</head>
+<body>
+    <h1>Setting up initial admin user...</h1>
+    <div id="status"></div>
+
+    <script>
+        // Create the initial admin user that matches your Supabase user
+        const initialAdminUser = {
+            id: '8452b4ad-3293-4379-8121-6f0b13d738a5',
+            name: 'Shiras',
+            email: 'shiras@fitness22.com',
+            password: 'admin123', // You can change this password
+            createdAt: new Date().toISOString(),
+            isAdmin: true,
+            department: 'Israel'
+        };
+
+        // Save to localStorage
+        const USERS_KEY = 'attendance_users';
+        const users = [initialAdminUser];
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+        // Clear any existing session
+        localStorage.removeItem('attendance_current_user');
+        localStorage.removeItem('attendance_session_token');
+
+        document.getElementById('status').innerHTML = `
+            <h2>✅ Initial admin user created successfully!</h2>
+            <p><strong>User Details:</strong></p>
+            <ul>
+                <li>ID: ${initialAdminUser.id}</li>
+                <li>Name: ${initialAdminUser.name}</li>
+                <li>Email: ${initialAdminUser.email}</li>
+                <li>Password: ${initialAdminUser.password}</li>
+                <li>Admin: ${initialAdminUser.isAdmin ? 'Yes' : 'No'}</li>
+                <li>Department: ${initialAdminUser.department}</li>
+            </ul>
+            <p><strong>Next steps:</strong></p>
+            <ol>
+                <li>Close this page</li>
+                <li>Open your app</li>
+                <li>Log in with email: <code>shiras@fitness22.com</code> and password: <code>admin123</code></li>
+                <li>You can change the password later in your profile</li>
+            </ol>
+        `;
+    </script>
+</body>
+</html>

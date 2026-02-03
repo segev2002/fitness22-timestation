@@ -15,6 +15,13 @@ export const isSupabaseConfigured = (): boolean => {
   return Boolean(supabase);
 };
 
+// Track the current user id for RLS context
+let supabaseUserId: string | null = null;
+
+export const setSupabaseUserId = (userId: string | null): void => {
+  supabaseUserId = userId;
+};
+
 /**
  * SECURITY: Set current user context for RLS policies
  * This should be called before any database operation to ensure
@@ -29,6 +36,11 @@ export const setSupabaseUserContext = async (userId: string): Promise<void> => {
     // Function may not exist yet - that's okay, policies will fall back
     console.debug('set_current_user RPC not available:', error);
   }
+};
+
+const ensureSupabaseUserContext = async (): Promise<void> => {
+  if (!supabase || !supabaseUserId) return;
+  await setSupabaseUserContext(supabaseUserId);
 };
 
 // Database table interfaces
@@ -130,6 +142,7 @@ export const dbToActiveShift = (db: DbActiveShift): ActiveShift => ({
 export const supabaseShifts = {
   async getAll(): Promise<Shift[]> {
     if (!supabase) return [];
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('shifts')
@@ -146,6 +159,7 @@ export const supabaseShifts = {
 
   async getForMonth(year: number, month: number): Promise<Shift[]> {
     if (!supabase) return [];
+    await ensureSupabaseUserContext();
     
     const startDate = new Date(year, month, 1).toISOString().split('T')[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
@@ -167,6 +181,7 @@ export const supabaseShifts = {
 
   async getForUser(userId: string, year: number, month: number): Promise<Shift[]> {
     if (!supabase) return [];
+    await ensureSupabaseUserContext();
     
     const startDate = new Date(year, month, 1).toISOString().split('T')[0];
     const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
@@ -189,6 +204,7 @@ export const supabaseShifts = {
 
   async add(shift: Shift): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     // Check for existing shift on same date for same user
     const { data: existing } = await supabase
@@ -226,6 +242,7 @@ export const supabaseShifts = {
 
   async update(shift: Shift): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     const { error } = await supabase
       .from('shifts')
@@ -242,6 +259,7 @@ export const supabaseShifts = {
 
   async delete(shiftId: string): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     const { error } = await supabase
       .from('shifts')
@@ -258,6 +276,7 @@ export const supabaseShifts = {
 
   async deleteByDates(userId: string, dates: string[]): Promise<number> {
     if (!supabase) return 0;
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('shifts')
@@ -279,6 +298,7 @@ export const supabaseShifts = {
 export const supabaseUsers = {
   async get(id: string): Promise<User | null> {
     if (!supabase) return null;
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('users')
@@ -296,6 +316,7 @@ export const supabaseUsers = {
 
   async getByEmail(email: string): Promise<User | null> {
     if (!supabase) return null;
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('users')
@@ -313,6 +334,7 @@ export const supabaseUsers = {
 
   async create(user: User): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     const { error } = await supabase
       .from('users')
@@ -328,6 +350,7 @@ export const supabaseUsers = {
 
   async update(user: User): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     const { error } = await supabase
       .from('users')
@@ -345,6 +368,7 @@ export const supabaseUsers = {
   // Admin: Get all users
   async getAll(): Promise<User[]> {
     if (!supabase) return [];
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('users')
@@ -364,6 +388,7 @@ export const supabaseUsers = {
 export const supabaseActiveShift = {
   async get(userId: string): Promise<ActiveShift | null> {
     if (!supabase) return null;
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('active_shifts')
@@ -383,6 +408,7 @@ export const supabaseActiveShift = {
 
   async set(shift: ActiveShift | null, userId: string): Promise<boolean> {
     if (!supabase) return false;
+    await ensureSupabaseUserContext();
     
     if (shift === null) {
       // Delete active shift
@@ -413,6 +439,7 @@ export const supabaseActiveShift = {
   // Admin: Get all active shifts (who is currently checked in)
   async getAll(): Promise<ActiveShift[]> {
     if (!supabase) return [];
+    await ensureSupabaseUserContext();
     
     const { data, error } = await supabase
       .from('active_shifts')

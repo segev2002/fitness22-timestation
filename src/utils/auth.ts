@@ -463,7 +463,7 @@ export const logoutUser = (): void => {
   setCurrentUser(null);
 };
 
-export const updateUserProfile = (userId: string, name: string, profilePicture?: string): boolean => {
+export const updateUserProfile = async (userId: string, name: string, profilePicture?: string): Promise<boolean> => {
   const users = getUsers();
   const userIndex = users.findIndex(u => u.id === userId);
   
@@ -475,6 +475,18 @@ export const updateUserProfile = (userId: string, name: string, profilePicture?:
   }
   saveUsers(users);
   
+  // Also update in Supabase database if configured
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const success = await supabaseUsers.update(users[userIndex]);
+      if (!success) {
+        console.error('Failed to update user profile in Supabase');
+      }
+    } catch (error) {
+      console.error('Supabase updateUserProfile error:', error);
+    }
+  }
+  
   const currentUser = getCurrentUser();
   if (currentUser && currentUser.id === userId) {
     setCurrentUser(users[userIndex]);
@@ -484,11 +496,11 @@ export const updateUserProfile = (userId: string, name: string, profilePicture?:
 };
 
 // Change user password (user can change their own password)
-export const changeUserPassword = (
+export const changeUserPassword = async (
   userId: string, 
   currentPassword: string, 
   newPassword: string
-): { success: boolean; error?: string } => {
+): Promise<{ success: boolean; error?: string }> => {
   const users = getUsers();
   const userIndex = users.findIndex(u => u.id === userId);
   
@@ -509,6 +521,18 @@ export const changeUserPassword = (
   // Update password
   users[userIndex].password = newPassword;
   saveUsers(users);
+  
+  // Also update in Supabase database if configured
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const success = await supabaseUsers.update(users[userIndex]);
+      if (!success) {
+        console.error('Failed to update password in Supabase');
+      }
+    } catch (error) {
+      console.error('Supabase changeUserPassword error:', error);
+    }
+  }
   
   // Update current user session if this is the logged-in user
   const currentUser = getCurrentUser();

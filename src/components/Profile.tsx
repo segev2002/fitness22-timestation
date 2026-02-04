@@ -51,7 +51,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
     
     setIsSaving(true);
     try {
-      const success = updateUserProfile(user.id, name, profilePicture);
+      const success = await updateUserProfile(user.id, name, profilePicture);
       if (success) {
         onUserUpdate({ ...user, name, profilePicture });
         setIsEditing(false);
@@ -67,7 +67,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
     setIsEditing(false);
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     setPasswordError('');
     setPasswordSuccess(false);
     
@@ -87,7 +87,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
       return;
     }
     
-    const result = changeUserPassword(user.id, currentPassword, newPassword);
+    const result = await changeUserPassword(user.id, currentPassword, newPassword);
     
     if (result.success) {
       setPasswordSuccess(true);

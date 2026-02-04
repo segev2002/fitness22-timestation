@@ -595,7 +595,7 @@ export const changeUserPassword = async (
   return { success: true };
 };
 
-// Admin function: Delete/disable a user (soft delete - keeps historical shifts)
+// Admin function: Delete a user permanently (removes user and all their shifts)
 export const adminDeleteUser = async (
   adminUser: User,
   targetUserId: string
@@ -622,19 +622,26 @@ export const adminDeleteUser = async (
     return { success: false, error: 'cannotDeleteSelf' };
   }
   
-  // Soft delete: mark as disabled instead of removing
-  // This preserves historical shift data
-  users[userIndex].isDisabled = true;
-  saveUsers(users);
-  
-  // Also update in Supabase
+  // Delete from Supabase first (user and their shifts)
   if (isSupabaseConfigured() && supabase) {
     try {
-      await supabaseUsers.update(users[userIndex]);
+      // Delete user's shifts first
+      await supabaseUsers.deleteUserShifts(targetUserId);
+      // Then delete the user
+      await supabaseUsers.delete(targetUserId);
     } catch (error) {
-      console.error('Supabase update error:', error);
+      console.error('Supabase delete error:', error);
     }
   }
+  
+  // Delete user's shifts from localStorage
+  const shifts = JSON.parse(localStorage.getItem('attendance_shifts') || '[]');
+  const filteredShifts = shifts.filter((s: { userId: string }) => s.userId !== targetUserId);
+  localStorage.setItem('attendance_shifts', JSON.stringify(filteredShifts));
+  
+  // Remove user from localStorage
+  users.splice(userIndex, 1);
+  saveUsers(users);
   
   return { success: true };
 };

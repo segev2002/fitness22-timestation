@@ -365,6 +365,42 @@ export const supabaseUsers = {
     return true;
   },
 
+  // Admin: Delete a user permanently
+  async delete(userId: string): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+    
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Supabase deleteUser error:', error);
+      return false;
+    }
+    
+    return true;
+  },
+
+  // Admin: Delete all shifts for a user
+  async deleteUserShifts(userId: string): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+    
+    const { error } = await supabase
+      .from('shifts')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Supabase deleteUserShifts error:', error);
+      return false;
+    }
+    
+    return true;
+  },
+
   // Admin: Get all users
   async getAll(): Promise<User[]> {
     if (!supabase) return [];

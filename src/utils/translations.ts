@@ -44,12 +44,9 @@ export const translations = {
     
     // User management
     deleteUser: 'מחק משתמש',
-    disableUser: 'השבת משתמש',
-    enableUser: 'הפעל משתמש',
-    userDisabledLabel: 'מושבת',
-    confirmDeleteUser: 'האם אתה בטוח שברצונך להשבית משתמש זה? המשתמש לא יוכל להתחבר אך היסטוריית המשמרות תישמר.',
-    cannotDeletePrimaryAdmin: 'לא ניתן להשבית את המנהל הראשי',
-    cannotDeleteSelf: 'לא ניתן להשבית את עצמך',
+    confirmDeleteUser: 'האם אתה בטוח שברצונך למחוק משתמש זה לצמיתות? פעולה זו תמחק את המשתמש ואת כל היסטוריית המשמרות שלו. לא ניתן לבטל פעולה זו!',
+    cannotDeletePrimaryAdmin: 'לא ניתן למחוק את המנהל הראשי',
+    cannotDeleteSelf: 'לא ניתן למחוק את עצמך',
     
     // Profile
     userProfile: 'פרופיל משתמש',
@@ -254,12 +251,9 @@ export const translations = {
     
     // User management
     deleteUser: 'Delete User',
-    disableUser: 'Disable User',
-    enableUser: 'Enable User',
-    userDisabledLabel: 'Disabled',
-    confirmDeleteUser: 'Are you sure you want to disable this user? They will not be able to log in but their shift history will be preserved.',
-    cannotDeletePrimaryAdmin: 'Cannot disable the primary admin',
-    cannotDeleteSelf: 'Cannot disable yourself',
+    confirmDeleteUser: 'Are you sure you want to permanently delete this user? This will remove the user and ALL their shift history. This action cannot be undone!',
+    cannotDeletePrimaryAdmin: 'Cannot delete the primary admin',
+    cannotDeleteSelf: 'Cannot delete yourself',
     
     // Profile
     userProfile: 'User Profile',

@@ -10,11 +10,10 @@ import {
   isUserAdmin,
   isPrimaryAdmin,
   DEPARTMENTS,
-  saveUsers,
   validateAdminAsync,
 } from '../utils/auth';
 import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase } from '../utils/storage';
-import { supabaseActiveShift, isSupabaseConfigured, supabaseUsers } from '../utils/supabase';
+import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
 
 interface AdminDashboardProps {
@@ -193,7 +192,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     }
   };
 
-  // Delete/disable user (soft delete)
+  // Delete user permanently
   const handleDeleteUser = async (targetUserId: string) => {
     if (!confirm(t.confirmDeleteUser)) return;
     
@@ -208,27 +207,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
       } else {
         alert(t.notAuthorized);
       }
-    }
-  };
-
-  // Re-enable a disabled user
-  const handleEnableUser = async (targetUserId: string) => {
-    const allUsers = getUsers();
-    const userIndex = allUsers.findIndex(u => u.id === targetUserId);
-    if (userIndex !== -1) {
-      allUsers[userIndex].isDisabled = false;
-      saveUsers(allUsers);
-      
-      // Also update in Supabase
-      if (supabaseUsers) {
-        try {
-          await supabaseUsers.update(allUsers[userIndex]);
-        } catch (error) {
-          console.error('Supabase update error:', error);
-        }
-      }
-      
-      loadUsers();
     }
   };
 
@@ -429,12 +407,9 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} className={`${u.isDisabled ? 'opacity-50' : ''}`}>
+                  <tr key={u.id}>
                     <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-l border-[var(--f22-border)] rounded-l-lg">
                       {u.name}
-                      {u.isDisabled && (
-                        <span className="ml-2 bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-xs">{t.userDisabledLabel}</span>
-                      )}
                     </td>
                     <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{u.email}</td>
                     <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
@@ -443,7 +418,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                           value={u.department || ''}
                           onChange={(e) => handleUpdateDepartment(u.id, e.target.value)}
                           className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded px-2 py-1 text-sm"
-                          disabled={u.isDisabled}
                         >
                           <option value="">-</option>
                           {DEPARTMENTS.map(dept => (
@@ -466,7 +440,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     {isPrimary && (
                       <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-r border-[var(--f22-border)] rounded-r-lg">
                         <div className="flex gap-2 flex-wrap">
-                          {!isPrimaryAdmin(u.email) && !u.isDisabled && (
+                          {!isPrimaryAdmin(u.email) && (
                             <button
                               onClick={() => handleToggleAdmin(u.id, !u.isAdmin)}
                               className={`px-3 py-1 rounded text-sm font-medium ${
@@ -479,21 +453,12 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                             </button>
                           )}
                           {!isPrimaryAdmin(u.email) && u.id !== user.id && (
-                            u.isDisabled ? (
-                              <button
-                                onClick={() => handleEnableUser(u.id)}
-                                className="px-3 py-1 rounded text-sm font-medium bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                              >
-                                {t.enableUser}
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleDeleteUser(u.id)}
-                                className="px-3 py-1 rounded text-sm font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                              >
-                                {t.disableUser}
-                              </button>
-                            )
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="px-3 py-1 rounded text-sm font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            >
+                              {t.deleteUser}
+                            </button>
                           )}
                         </div>
                       </td>

@@ -14,7 +14,7 @@ import {
   validateAdminAsync,
 } from '../utils/auth';
 import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase } from '../utils/storage';
-import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
+import { supabaseActiveShift, isSupabaseConfigured, supabaseUsers } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
 
 interface AdminDashboardProps {
@@ -145,7 +145,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const isPrimary = isPrimaryAdmin(user.email);
 
   // Create new user
-  const handleCreateUser = () => {
+  const handleCreateUser = async () => {
     setFormError('');
     
     if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) {
@@ -158,7 +158,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
       return;
     }
     
-    const result = adminCreateUser(user, newUserName, newUserEmail, newUserPassword, newUserDepartment);
+    const result = await adminCreateUser(user, newUserName, newUserEmail, newUserPassword, newUserDepartment);
     
     if (result.success) {
       setShowAddUser(false);
@@ -174,8 +174,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   };
 
   // Toggle admin status
-  const handleToggleAdmin = (targetUserId: string, makeAdmin: boolean) => {
-    const result = adminToggleUserAdmin(user, targetUserId, makeAdmin);
+  const handleToggleAdmin = async (targetUserId: string, makeAdmin: boolean) => {
+    const result = await adminToggleUserAdmin(user, targetUserId, makeAdmin);
     if (result.success) {
       loadUsers();
     } else {
@@ -184,8 +184,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   };
 
   // Update department
-  const handleUpdateDepartment = (targetUserId: string, department: string) => {
-    const result = adminUpdateUserDepartment(user, targetUserId, department);
+  const handleUpdateDepartment = async (targetUserId: string, department: string) => {
+    const result = await adminUpdateUserDepartment(user, targetUserId, department);
     if (result.success) {
       loadUsers();
     } else {
@@ -194,10 +194,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   };
 
   // Delete/disable user (soft delete)
-  const handleDeleteUser = (targetUserId: string) => {
+  const handleDeleteUser = async (targetUserId: string) => {
     if (!confirm(t.confirmDeleteUser)) return;
     
-    const result = adminDeleteUser(user, targetUserId);
+    const result = await adminDeleteUser(user, targetUserId);
     if (result.success) {
       loadUsers();
     } else {
@@ -212,12 +212,22 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   };
 
   // Re-enable a disabled user
-  const handleEnableUser = (targetUserId: string) => {
+  const handleEnableUser = async (targetUserId: string) => {
     const allUsers = getUsers();
     const userIndex = allUsers.findIndex(u => u.id === targetUserId);
     if (userIndex !== -1) {
       allUsers[userIndex].isDisabled = false;
       saveUsers(allUsers);
+      
+      // Also update in Supabase
+      if (supabaseUsers) {
+        try {
+          await supabaseUsers.update(allUsers[userIndex]);
+        } catch (error) {
+          console.error('Supabase update error:', error);
+        }
+      }
+      
       loadUsers();
     }
   };

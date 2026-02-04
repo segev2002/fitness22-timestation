@@ -312,34 +312,47 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
 /**
  * Migrate any users currently stored in localStorage into Supabase.
  * This is a convenience migration for projects that started with localStorage.
- * It will create any users that do not already exist in the database.
+ * It will create any users that do not already exist in the database,
+ * and update existing users with local data.
  */
-export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; skipped: number }> => {
-  if (!isSupabaseConfigured() || !supabase) return { created: 0, skipped: 0 };
+export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; updated: number; skipped: number }> => {
+  if (!isSupabaseConfigured() || !supabase) return { created: 0, updated: 0, skipped: 0 };
 
   const localUsers = getUsers();
   let created = 0;
+  let updated = 0;
   let skipped = 0;
 
   for (const u of localUsers) {
     try {
       const existing = await supabaseUsers.getByEmail(u.email);
       if (existing) {
-        skipped++;
+        // User exists, try to update with local data
+        const ok = await supabaseUsers.update(u);
+        if (ok) {
+          updated++;
+          console.log(`Updated user in Supabase: ${u.email}`);
+        } else {
+          skipped++;
+        }
         continue;
       }
 
       // Create the user in Supabase (best-effort)
       const ok = await supabaseUsers.create(u);
-      if (ok) created++;
-      else skipped++;
+      if (ok) {
+        created++;
+        console.log(`Migrated user to Supabase: ${u.email}`);
+      } else {
+        skipped++;
+      }
     } catch (err) {
       console.error('Failed to migrate user to Supabase:', u.email, err);
       skipped++;
     }
   }
 
-  return { created, skipped };
+  return { created, updated, skipped };
 };
 
 // Public registration is disabled - only admins can create users
@@ -370,13 +383,13 @@ export const registerUser = (name: string, email: string, password: string): { s
 };
 
 // Admin function: Create a new user (only admins can call this)
-export const adminCreateUser = (
+export const adminCreateUser = async (
   adminUser: User,
   name: string, 
   email: string, 
   password: string,
   department?: string
-): { success: boolean; user?: User; error?: string } => {
+): Promise<{ success: boolean; user?: User; error?: string }> => {
   // Verify caller is admin
   if (!isUserAdmin(adminUser)) {
     return { success: false, error: 'notAuthorized' };
@@ -384,10 +397,18 @@ export const adminCreateUser = (
   
   const users = getUsers();
   
-  // Check if email already exists
+  // Check if email already exists locally
   const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (existingUser) {
     return { success: false, error: 'emailExists' };
+  }
+  
+  // Also check if email exists in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    const dbUser = await supabaseUsers.getByEmail(email.toLowerCase());
+    if (dbUser) {
+      return { success: false, error: 'emailExists' };
+    }
   }
   
   const newUser: User = {
@@ -400,18 +421,31 @@ export const adminCreateUser = (
     department,
   };
   
+  // Save to localStorage
   users.push(newUser);
   saveUsers(users);
+  
+  // Also save to Supabase if configured
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const success = await supabaseUsers.create(newUser);
+      if (!success) {
+        console.error('Failed to create user in Supabase');
+      }
+    } catch (error) {
+      console.error('Supabase createUser error:', error);
+    }
+  }
   
   return { success: true, user: newUser };
 };
 
 // Admin function: Update user admin status (only primary admin can do this)
-export const adminToggleUserAdmin = (
+export const adminToggleUserAdmin = async (
   adminUser: User,
   targetUserId: string,
   makeAdmin: boolean
-): { success: boolean; error?: string } => {
+): Promise<{ success: boolean; error?: string }> => {
   // Only primary admin can promote/demote admins
   if (!isPrimaryAdmin(adminUser.email)) {
     return { success: false, error: 'onlyPrimaryAdmin' };
@@ -432,15 +466,24 @@ export const adminToggleUserAdmin = (
   users[userIndex].isAdmin = makeAdmin;
   saveUsers(users);
   
+  // Also update in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabaseUsers.update(users[userIndex]);
+    } catch (error) {
+      console.error('Supabase update error:', error);
+    }
+  }
+  
   return { success: true };
 };
 
 // Admin function: Update user department (only primary admin can do this)
-export const adminUpdateUserDepartment = (
+export const adminUpdateUserDepartment = async (
   adminUser: User,
   targetUserId: string,
   department: string
-): { success: boolean; error?: string } => {
+): Promise<{ success: boolean; error?: string }> => {
   // Only primary admin can change departments
   if (!isPrimaryAdmin(adminUser.email)) {
     return { success: false, error: 'onlyPrimaryAdmin' };
@@ -455,6 +498,15 @@ export const adminUpdateUserDepartment = (
   
   users[userIndex].department = department;
   saveUsers(users);
+  
+  // Also update in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabaseUsers.update(users[userIndex]);
+    } catch (error) {
+      console.error('Supabase update error:', error);
+    }
+  }
   
   return { success: true };
 };
@@ -544,10 +596,10 @@ export const changeUserPassword = async (
 };
 
 // Admin function: Delete/disable a user (soft delete - keeps historical shifts)
-export const adminDeleteUser = (
+export const adminDeleteUser = async (
   adminUser: User,
   targetUserId: string
-): { success: boolean; error?: string } => {
+): Promise<{ success: boolean; error?: string }> => {
   // Verify caller is admin
   if (!isUserAdmin(adminUser)) {
     return { success: false, error: 'notAuthorized' };
@@ -574,6 +626,15 @@ export const adminDeleteUser = (
   // This preserves historical shift data
   users[userIndex].isDisabled = true;
   saveUsers(users);
+  
+  // Also update in Supabase
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabaseUsers.update(users[userIndex]);
+    } catch (error) {
+      console.error('Supabase update error:', error);
+    }
+  }
   
   return { success: true };
 };

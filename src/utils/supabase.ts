@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Shift, ActiveShift, User } from '../types';
 
 // Environment variables for Supabase connection
@@ -291,6 +292,24 @@ export const supabaseShifts = {
     }
     
     return data?.length || 0;
+  },
+
+  // Subscribe to shifts changes (realtime)
+  subscribeToChanges(callback: () => void): RealtimeChannel | null {
+    if (!supabase) return null;
+
+    const subscription = supabase
+      .channel('shifts_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts' },
+        () => {
+          callback();
+        }
+      )
+      .subscribe();
+
+    return subscription;
   },
 };
 

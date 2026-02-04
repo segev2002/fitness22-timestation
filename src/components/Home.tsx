@@ -8,6 +8,7 @@ import {
   generateId,
   getShiftsForMonth,
   syncShiftsFromSupabase,
+  subscribeToShiftChanges,
 } from '../utils/storage';
 import ShiftHistory from './ShiftHistory';
 
@@ -46,6 +47,24 @@ const Home = ({ user }: HomeProps) => {
     }
     void loadShifts();
   }, [user.id, loadShifts]);
+
+  // Realtime sync across devices
+  useEffect(() => {
+    const subscription = subscribeToShiftChanges((updatedShifts) => {
+      const now = new Date();
+      const monthShifts = updatedShifts
+        .filter(s => s.userId === user.id)
+        .filter(s => {
+          const shiftDate = new Date(s.date);
+          return shiftDate.getFullYear() === now.getFullYear() && shiftDate.getMonth() === now.getMonth();
+        });
+      setShifts(monthShifts);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [user.id]);
 
   // Persist note when it changes (only when in shift)
   useEffect(() => {

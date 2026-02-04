@@ -12,7 +12,7 @@ import {
   DEPARTMENTS,
   validateAdminAsync,
 } from '../utils/auth';
-import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase } from '../utils/storage';
+import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase, subscribeToShiftChanges } from '../utils/storage';
 import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
 
@@ -73,15 +73,18 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     setUsers(getUsers());
   }, []);
 
-  const loadShifts = useCallback(async () => {
-    await syncShiftsFromSupabase();
+  const filterShiftsForMonth = useCallback((allShifts: Shift[]) => {
     const [year, month] = selectedMonth.split('-').map(Number);
-    const allShifts = getShifts().filter(s => {
+    return allShifts.filter(s => {
       const shiftDate = new Date(s.date);
       return shiftDate.getFullYear() === year && shiftDate.getMonth() === month - 1;
     });
-    setShifts(allShifts);
   }, [selectedMonth]);
+
+  const loadShifts = useCallback(async () => {
+    await syncShiftsFromSupabase();
+    setShifts(filterShiftsForMonth(getShifts()));
+  }, [filterShiftsForMonth]);
 
   const loadActiveShifts = useCallback(async () => {
     // Try Supabase first for all active shifts
@@ -108,11 +111,16 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     const subscription = supabaseActiveShift.subscribeToChanges((newShifts) => {
       setActiveShifts(newShifts);
     });
+
+    const shiftsSubscription = subscribeToShiftChanges((updatedShifts) => {
+      setShifts(filterShiftsForMonth(updatedShifts));
+    });
     
     return () => {
       subscription?.unsubscribe();
+      shiftsSubscription?.unsubscribe();
     };
-  }, [loadUsers, loadShifts, loadActiveShifts, isAdminVerified]);
+  }, [loadUsers, loadShifts, loadActiveShifts, filterShiftsForMonth, isAdminVerified]);
 
   useEffect(() => {
     if (isAdminVerified) {

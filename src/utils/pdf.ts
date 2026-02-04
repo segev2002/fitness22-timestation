@@ -15,6 +15,7 @@ const getDayNameForPDF = (date: Date): string => {
 };
 
 export const generatePDF = (shifts: Shift[], employeeName: string, monthYear: string, _lang: Language = 'en'): void => {
+  void _lang;
   const doc = new jsPDF();
   
   // Title - always in English for proper PDF rendering

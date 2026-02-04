@@ -259,15 +259,19 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
           users[idx] = dbUser;
         }
         saveUsers(users);
-      } catch (e) {
-        // ignore local sync errors
+      } catch (error) {
+        console.debug('Local user sync failed:', error);
       }
 
       // Auto-grant admin to primary admin email locally
       if (isPrimaryAdmin(dbUser.email) && !dbUser.isAdmin) {
         dbUser.isAdmin = true;
         // attempt to update DB copy (best-effort)
-        try { await supabaseUsers.update(dbUser); } catch (_) {}
+        try {
+          await supabaseUsers.update(dbUser);
+        } catch (error) {
+          console.debug('Supabase admin update failed:', error);
+        }
       }
 
       setCurrentUser(dbUser);

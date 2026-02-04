@@ -199,6 +199,19 @@ export const syncShiftsFromSupabase = async (): Promise<Shift[]> => {
   }
 };
 
+export const subscribeToShiftChanges = (
+  onSync?: (shifts: Shift[]) => void
+) => {
+  if (!shouldUseSupabase()) return null;
+
+  const subscription = supabaseShifts.subscribeToChanges(async () => {
+    const updated = await syncShiftsFromSupabase();
+    if (onSync) onSync(updated);
+  });
+
+  return subscription;
+};
+
 export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };

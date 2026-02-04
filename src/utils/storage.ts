@@ -8,9 +8,9 @@ import {
 const SHIFTS_KEY = 'attendance_shifts';
 const ACTIVE_SHIFT_KEY = 'attendance_active_shift';
 
-// Check if we should use Supabase (configured and online)
+// Check if we should use Supabase (configured)
 const shouldUseSupabase = (): boolean => {
-  return isSupabaseConfigured() && navigator.onLine;
+  return isSupabaseConfigured();
 };
 
 // Clean up duplicate shifts (keep only the latest one per user per date)
@@ -106,9 +106,16 @@ export const deleteShift = (shiftId: string): void => {
   
   // Also delete from Supabase if configured
   if (shouldUseSupabase()) {
-    supabaseShifts.delete(shiftId).catch(err => 
-      console.error('Supabase deleteShift failed:', err)
-    );
+    const existingShift = shifts.find(s => s.id === shiftId);
+    if (existingShift) {
+      supabaseShifts.deleteByDates(existingShift.userId, [existingShift.date]).catch(err => 
+        console.error('Supabase deleteShift failed:', err)
+      );
+    } else {
+      supabaseShifts.delete(shiftId).catch(err => 
+        console.error('Supabase deleteShift failed:', err)
+      );
+    }
   }
 };
 
@@ -178,15 +185,15 @@ export const syncShiftsFromSupabase = async (): Promise<Shift[]> => {
   try {
     const remoteShifts = await supabaseShifts.getAll();
     if (remoteShifts.length > 0) {
-      // Merge remote shifts with local (remote takes precedence)
+      // Merge remote shifts with local (remote takes precedence by user+date)
       const localShifts = localGetShifts();
       const mergedMap = new Map<string, Shift>();
       
       // Add local shifts first
-      localShifts.forEach(s => mergedMap.set(s.id, s));
+      localShifts.forEach(s => mergedMap.set(`${s.userId}-${s.date}`, s));
       
       // Override with remote shifts
-      remoteShifts.forEach(s => mergedMap.set(s.id, s));
+      remoteShifts.forEach(s => mergedMap.set(`${s.userId}-${s.date}`, s));
       
       const merged = Array.from(mergedMap.values());
       localSaveShifts(merged);

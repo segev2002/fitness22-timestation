@@ -248,7 +248,8 @@ export const supabaseShifts = {
     const { error } = await supabase
       .from('shifts')
       .update(shiftToDb(shift))
-      .eq('id', shift.id);
+      .eq('user_id', shift.userId)
+      .eq('date', shift.date);
     
     if (error) {
       console.error('Supabase update error:', error);

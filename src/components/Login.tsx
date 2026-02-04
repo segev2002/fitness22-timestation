@@ -89,7 +89,7 @@ const Login = ({ onLogin }: LoginProps) => {
           <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center justify-center mb-4">
               <img
-                src={isDark ? '/fitness22-logo-dark.svg' : '/fitness22-logo-light.svg'}
+                src={isDark ? '/Logo_fitness.png' : '/logo_black.png'}
                 alt="Fitness22"
                 className="h-8 md:h-10 w-auto"
               />

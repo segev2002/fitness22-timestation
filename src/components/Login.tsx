@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { loginUser } from '../utils/auth';
+import { useTheme } from '../context/ThemeContext';
 import type { User } from '../types';
 
 interface LoginProps {
@@ -9,6 +10,7 @@ interface LoginProps {
 
 const Login = ({ onLogin }: LoginProps) => {
   const { t, language, setLanguage } = useLanguage();
+  const { isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -87,7 +89,7 @@ const Login = ({ onLogin }: LoginProps) => {
           <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center justify-center mb-4">
               <img
-                src="/fitness22-logo.svg"
+                src={isDark ? '/fitness22-logo-dark.svg' : '/fitness22-logo-light.svg'}
                 alt="Fitness22"
                 className="h-8 md:h-10 w-auto"
               />

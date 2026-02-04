@@ -198,7 +198,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
             {/* Center: Logo/Title */}
             <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-4 flex-shrink-0">
               <img
-                src="/fitness22-logo.svg"
+                src={isDark ? '/fitness22-logo-dark.svg' : '/fitness22-logo-light.svg'}
                 alt="Fitness22"
                 className="h-4 sm:h-7 w-auto shrink-0"
               />

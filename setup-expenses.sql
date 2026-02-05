@@ -5,8 +5,8 @@
 
 -- Create expense_reports table
 CREATE TABLE IF NOT EXISTS expense_reports (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     user_name TEXT NOT NULL,
     month TEXT NOT NULL, -- Format: "YYYY-MM"
     expense_period TEXT NOT NULL, -- Display format: "Feb, 2026"
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS expense_reports (
 
 -- Create expense_items table
 CREATE TABLE IF NOT EXISTS expense_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    expense_report_id UUID NOT NULL REFERENCES expense_reports(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    expense_report_id TEXT NOT NULL REFERENCES expense_reports(id) ON DELETE CASCADE,
     currency TEXT NOT NULL CHECK (currency IN ('NIS', 'USD', 'EUR')),
     quantity INTEGER DEFAULT 1,
     description TEXT NOT NULL,
@@ -69,7 +69,7 @@ ALTER TABLE expense_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own expense reports"
 ON expense_reports FOR SELECT
 USING (
-    user_id::text = current_setting('app.current_user_id', true)
+    user_id = current_setting('app.current_user_id', true)
 );
 
 -- Admins can view all expense reports
@@ -78,7 +78,7 @@ ON expense_reports FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        WHERE id::text = current_setting('app.current_user_id', true) 
+        WHERE id = current_setting('app.current_user_id', true) 
         AND is_admin = true
     )
 );
@@ -87,18 +87,18 @@ USING (
 CREATE POLICY "Users can insert own expense reports"
 ON expense_reports FOR INSERT
 WITH CHECK (
-    user_id::text = current_setting('app.current_user_id', true)
+    user_id = current_setting('app.current_user_id', true)
 );
 
 -- Users can update their own expense reports (only if draft)
 CREATE POLICY "Users can update own draft expense reports"
 ON expense_reports FOR UPDATE
 USING (
-    user_id::text = current_setting('app.current_user_id', true)
+    user_id = current_setting('app.current_user_id', true)
     AND status = 'draft'
 )
 WITH CHECK (
-    user_id::text = current_setting('app.current_user_id', true)
+    user_id = current_setting('app.current_user_id', true)
 );
 
 -- Admins can update any expense report (for approval/rejection)
@@ -107,7 +107,7 @@ ON expense_reports FOR UPDATE
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        WHERE id::text = current_setting('app.current_user_id', true) 
+        WHERE id = current_setting('app.current_user_id', true) 
         AND is_admin = true
     )
 );
@@ -116,7 +116,7 @@ USING (
 CREATE POLICY "Users can delete own draft expense reports"
 ON expense_reports FOR DELETE
 USING (
-    user_id::text = current_setting('app.current_user_id', true)
+    user_id = current_setting('app.current_user_id', true)
     AND status = 'draft'
 );
 
@@ -126,7 +126,7 @@ ON expense_reports FOR DELETE
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        WHERE id::text = current_setting('app.current_user_id', true) 
+        WHERE id = current_setting('app.current_user_id', true) 
         AND is_admin = true
     )
 );
@@ -142,7 +142,7 @@ USING (
     EXISTS (
         SELECT 1 FROM expense_reports er
         WHERE er.id = expense_items.expense_report_id
-        AND er.user_id::text = current_setting('app.current_user_id', true)
+        AND er.user_id = current_setting('app.current_user_id', true)
     )
 );
 
@@ -152,7 +152,7 @@ ON expense_items FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        WHERE id::text = current_setting('app.current_user_id', true) 
+        WHERE id = current_setting('app.current_user_id', true) 
         AND is_admin = true
     )
 );
@@ -164,7 +164,7 @@ WITH CHECK (
     EXISTS (
         SELECT 1 FROM expense_reports er
         WHERE er.id = expense_items.expense_report_id
-        AND er.user_id::text = current_setting('app.current_user_id', true)
+        AND er.user_id = current_setting('app.current_user_id', true)
         AND er.status = 'draft'
     )
 );
@@ -176,7 +176,7 @@ USING (
     EXISTS (
         SELECT 1 FROM expense_reports er
         WHERE er.id = expense_items.expense_report_id
-        AND er.user_id::text = current_setting('app.current_user_id', true)
+        AND er.user_id = current_setting('app.current_user_id', true)
         AND er.status = 'draft'
     )
 );
@@ -188,7 +188,7 @@ USING (
     EXISTS (
         SELECT 1 FROM expense_reports er
         WHERE er.id = expense_items.expense_report_id
-        AND er.user_id::text = current_setting('app.current_user_id', true)
+        AND er.user_id = current_setting('app.current_user_id', true)
         AND er.status = 'draft'
     )
 );
@@ -199,7 +199,7 @@ ON expense_items FOR ALL
 USING (
     EXISTS (
         SELECT 1 FROM users 
-        WHERE id::text = current_setting('app.current_user_id', true) 
+        WHERE id = current_setting('app.current_user_id', true) 
         AND is_admin = true
     )
 );

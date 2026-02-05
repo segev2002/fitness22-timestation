@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { User, ViewType } from './types';
-import { getCurrentUser, logoutUser, setCurrentUser, isUserAdmin, validateSessionAsync, migrateLocalUsersToSupabase } from './utils/auth';
+import { getCurrentUser, logoutUser, setCurrentUser, isUserAdmin, validateSessionAsync, migrateLocalUsersToSupabase, syncUsersFromSupabase } from './utils/auth';
 import Login from './components/Login';
 import Header from './components/Header';
 import Home from './components/Home';
@@ -16,12 +16,21 @@ function App() {
   // SECURITY: Check and validate existing user session on mount
   useEffect(() => {
     const validateSession = async () => {
+      // First, sync users from Supabase to ensure we have all users locally
+      // This is critical for cross-device functionality
+      try {
+        await syncUsersFromSupabase();
+      } catch (e) {
+        console.debug('User sync from Supabase failed:', e);
+      }
+      
       // Try to migrate any localStorage users into Supabase (one-time convenience)
       try {
         await migrateLocalUsersToSupabase();
       } catch (e) {
         console.debug('User migration skipped or failed:', e);
       }
+      
       // First, do synchronous check for immediate UI
       const existingUser = getCurrentUser();
       

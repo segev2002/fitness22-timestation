@@ -77,8 +77,11 @@ export const syncUsersFromSupabase = async (): Promise<User[]> => {
 /**
  * SECURITY: Get current user with validation
  * - Validates session token matches stored token
- * - Validates user still exists and is not disabled
- * - Returns fresh data from users list (not stale cached data)
+ * - Returns stored user data (async validateSessionAsync will verify against DB)
+ * 
+ * Note: We no longer require the user to exist in local getUsers() list
+ * because on a new device, localStorage is empty. The async validation
+ * in validateSessionAsync() handles the full DB verification.
  */
 export const getCurrentUser = (): User | null => {
   const data = localStorage.getItem(CURRENT_USER_KEY);
@@ -100,27 +103,21 @@ export const getCurrentUser = (): User | null => {
       return null;
     }
     
-    // Validate user still exists in the users list
+    // Check local users list for fresh data (but don't fail if not found)
     const users = getUsers();
-    const validUser = users.find(u => u.id === storedUser.id);
+    const localUser = users.find(u => u.id === storedUser.id);
     
-    if (!validUser) {
-      console.warn('User no longer exists in system - clearing session');
-      clearSession();
-      return null;
-    }
-    
-    // SECURITY: Check if user is disabled
-    if (validUser.isDisabled) {
+    // If user is in local list, check if disabled
+    if (localUser?.isDisabled) {
       console.warn('User is disabled - clearing session');
       clearSession();
       return null;
     }
     
-    // Return the validated user with latest data from users list
-    // BUT preserve the session token for this session
-    setSupabaseUserId(validUser.id);
-    return { ...validUser, sessionToken: storedToken } as User;
+    // Return the user (prefer local data if available for freshness)
+    const userToReturn = localUser || storedUser;
+    setSupabaseUserId(userToReturn.id);
+    return { ...userToReturn, sessionToken: storedToken } as User;
   } catch {
     console.error('Failed to parse current user - clearing session');
     clearSession();

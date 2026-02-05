@@ -14,6 +14,8 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
   const [name, setName] = useState(user.name);
   const [profilePicture, setProfilePicture] = useState<string | undefined>(user.profilePicture);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Password change state
@@ -48,14 +50,22 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    
+    setSaveError('');
+    setSaveSuccess(false);
     setIsSaving(true);
     try {
       const success = await updateUserProfile(user.id, name, profilePicture);
       if (success) {
         onUserUpdate({ ...user, name, profilePicture });
         setIsEditing(false);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+      } else {
+        setSaveError(t.profileSaveFailed);
       }
+    } catch (error) {
+      console.error('Profile save failed:', error);
+      setSaveError(t.profileSaveFailed);
     } finally {
       setIsSaving(false);
     }
@@ -65,6 +75,8 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
     setName(user.name);
     setProfilePicture(user.profilePicture);
     setIsEditing(false);
+    setSaveError('');
+    setSaveSuccess(false);
   };
 
   const handlePasswordChange = async () => {
@@ -216,12 +228,27 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
               </div>
             </div>
 
+            {saveError && (
+              <div className="w-full text-center bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm">
+                {saveError}
+              </div>
+            )}
+            {saveSuccess && (
+              <div className="w-full text-center bg-green-500/20 text-green-400 px-4 py-2 rounded-lg text-sm">
+                {t.profileSaveSuccess}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6">
               {!isEditing ? (
                 <>
                   <button
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => {
+                      setIsEditing(true);
+                      setSaveError('');
+                      setSaveSuccess(false);
+                    }}
                     className="flex items-center justify-center gap-3 bg-[#39FF14] text-[#0D0D0D] px-6 md:px-8 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[#00D438] transition-all shadow-lg shadow-[#39FF14]/30 transform hover:scale-105"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

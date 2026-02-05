@@ -332,7 +332,7 @@ export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; 
       const existing = await supabaseUsers.getByEmail(u.email);
       if (existing) {
         // User exists, try to update with local data
-        const ok = await supabaseUsers.update(u);
+        const ok = await supabaseUsers.upsert(u);
         if (ok) {
           updated++;
           console.log(`Updated user in Supabase: ${u.email}`);
@@ -343,7 +343,7 @@ export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; 
       }
 
       // Create the user in Supabase (best-effort)
-      const ok = await supabaseUsers.create(u);
+      const ok = await supabaseUsers.upsert(u);
       if (ok) {
         created++;
         console.log(`Migrated user to Supabase: ${u.email}`);
@@ -549,7 +549,7 @@ export const updateUserProfile = async (userId: string, name: string, profilePic
         profilePicture: profilePicture !== undefined ? profilePicture : sourceUser.profilePicture,
       };
 
-      const success = await supabaseUsers.update(updatedUser);
+      const success = await supabaseUsers.upsert(updatedUser);
       if (!success) {
         console.error('Failed to update user profile in Supabase');
         return false;
@@ -603,7 +603,7 @@ export const changeUserPassword = async (
       }
 
       const updatedUser = { ...dbUser, password: newPassword };
-      const success = await supabaseUsers.update(updatedUser);
+      const success = await supabaseUsers.upsert(updatedUser);
       if (!success) {
         return { success: false, error: 'updateFailed' };
       }

@@ -385,6 +385,22 @@ export const supabaseUsers = {
     return true;
   },
 
+  async upsert(user: User): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+
+    const { error } = await supabase
+      .from('users')
+      .upsert(userToDb(user), { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase upsertUser error:', error);
+      return false;
+    }
+
+    return true;
+  },
+
   // Admin: Delete a user permanently
   async delete(userId: string): Promise<boolean> {
     if (!supabase) return false;
@@ -630,6 +646,13 @@ CREATE POLICY "users_insert_admin" ON users
       WHERE id = current_setting('app.current_user_id', true) 
       AND (is_admin = true OR email = 'shiras@fitness22.com')
     )
+  );
+
+-- Users can insert their own profile if missing (self-provisioning)
+CREATE POLICY "users_insert_self" ON users
+  FOR INSERT
+  WITH CHECK (
+    id = current_setting('app.current_user_id', true)
   );
 
 -- Only primary admin can delete users

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { User, ExpenseReport, ExpenseItem, Currency } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { supabaseExpenses } from '../utils/supabase';
@@ -26,10 +26,168 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
   EUR: '€',
 };
 
-// Default exchange rates (can be updated by admin)
+// Default exchange rates
 const DEFAULT_EXCHANGE_RATES = {
   USD: 3.12,
   EUR: 3.68,
+};
+
+// Individual expense item row component to prevent re-render issues
+const ExpenseItemRow = ({
+  item,
+  currency,
+  onUpdate,
+  onRemove,
+  onInvoiceUpload,
+}: {
+  item: ExpenseItem;
+  currency: Currency;
+  onUpdate: (updates: Partial<ExpenseItem>) => void;
+  onRemove: () => void;
+  onInvoiceUpload: (file: File) => void;
+}) => {
+  const { t } = useLanguage();
+  const [localPrice, setLocalPrice] = useState(item.unitPrice ? String(item.unitPrice) : '');
+  const [localDescription, setLocalDescription] = useState(item.description);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync local state when item changes from outside
+  useEffect(() => {
+    setLocalPrice(item.unitPrice ? String(item.unitPrice) : '');
+    setLocalDescription(item.description);
+  }, [item.id]); // Only reset when item ID changes (new item)
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalPrice(value);
+  };
+
+  const handlePriceBlur = () => {
+    const numValue = parseFloat(localPrice) || 0;
+    onUpdate({ unitPrice: numValue });
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalDescription(value);
+    onUpdate({ description: value });
+  };
+
+  return (
+    <div className="bg-[var(--f22-surface-light)] rounded-xl p-4 mb-4 border border-[var(--f22-border)]">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+        {/* Quantity */}
+        <div className="md:col-span-1">
+          <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.quantity}</label>
+          <select
+            value={item.quantity}
+            onChange={(e) => onUpdate({ quantity: parseInt(e.target.value) })}
+            className="w-full px-3 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Description */}
+        <div className="md:col-span-4">
+          <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.description}</label>
+          <input
+            type="text"
+            value={localDescription}
+            onChange={handleDescriptionChange}
+            placeholder={t.enterDescription}
+            className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+          />
+        </div>
+        
+        {/* Unit Price */}
+        <div className="md:col-span-2">
+          <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.unitPrice}</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--f22-text-muted)]">
+              {CURRENCY_SYMBOLS[currency]}
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={localPrice}
+              onChange={handlePriceChange}
+              onBlur={handlePriceBlur}
+              placeholder="0.00"
+              className="w-full pl-8 pr-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+            />
+          </div>
+        </div>
+        
+        {/* Line Total */}
+        <div className="md:col-span-2">
+          <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.lineTotal}</label>
+          <div className="px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] font-semibold text-sm">
+            {CURRENCY_SYMBOLS[currency]}{item.lineTotal.toFixed(2)}
+          </div>
+        </div>
+        
+        {/* Invoice Upload */}
+        <div className="md:col-span-2">
+          <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.uploadInvoice}</label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            ref={fileInputRef}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onInvoiceUpload(file);
+            }}
+            className="hidden"
+          />
+          {item.invoiceBase64 || item.invoiceUrl ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const url = item.invoiceBase64 || item.invoiceUrl;
+                  if (url) window.open(url, '_blank');
+                }}
+                className="flex-1 px-3 py-3 text-sm bg-[#39FF14]/20 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/30 transition-colors font-medium"
+              >
+                👁 {t.viewInvoice}
+              </button>
+              <button
+                onClick={() => onUpdate({ invoiceBase64: undefined, invoiceUrl: undefined })}
+                className="px-3 py-3 text-sm bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full px-4 py-3 text-sm bg-blue-500/20 text-blue-400 border-2 border-dashed border-blue-500/40 rounded-xl hover:bg-blue-500/30 hover:border-blue-500 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              📎 {t.uploadInvoice}
+            </button>
+          )}
+        </div>
+        
+        {/* Remove button */}
+        <div className="md:col-span-1 flex justify-end">
+          <button
+            onClick={onRemove}
+            className="p-3 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors"
+            title={t.removeExpense}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
@@ -61,9 +219,6 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   const [checkedBy, setCheckedBy] = useState('Shira Sofrin');
   const [approvedBy, setApprovedBy] = useState('Benny Shaviv');
   
-  // File input refs for invoice uploads
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  
   // Get month display string
   const getExpensePeriod = (monthStr: string) => {
     const [year, month] = monthStr.split('-').map(Number);
@@ -88,7 +243,6 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           if (existingReport.checkedBy) setCheckedBy(existingReport.checkedBy);
           if (existingReport.approvedBy) setApprovedBy(existingReport.approvedBy);
         } else {
-          // Create new empty report
           setReport(null);
           setItemsNIS([]);
           setItemsUSD([]);
@@ -117,14 +271,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     
     const grandTotalNIS = totalNIS + totalUSDInNIS + totalEURInNIS;
     
-    return {
-      totalNIS,
-      totalUSD,
-      totalUSDInNIS,
-      totalEUR,
-      totalEURInNIS,
-      grandTotalNIS,
-    };
+    return { totalNIS, totalUSD, totalUSDInNIS, totalEUR, totalEURInNIS, grandTotalNIS };
   }, [itemsNIS, itemsUSD, itemsEUR, exchangeRateUSD, exchangeRateEUR]);
   
   // Add new expense item
@@ -141,70 +288,46 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     };
     
     switch (currency) {
-      case 'NIS':
-        setItemsNIS(prev => [...prev, newItem]);
-        break;
-      case 'USD':
-        setItemsUSD(prev => [...prev, newItem]);
-        break;
-      case 'EUR':
-        setItemsEUR(prev => [...prev, newItem]);
-        break;
+      case 'NIS': setItemsNIS(prev => [...prev, newItem]); break;
+      case 'USD': setItemsUSD(prev => [...prev, newItem]); break;
+      case 'EUR': setItemsEUR(prev => [...prev, newItem]); break;
     }
   };
   
   // Update expense item
-  const updateExpenseItem = useCallback((currency: Currency, itemId: string, updates: Partial<ExpenseItem>) => {
+  const updateExpenseItem = (currency: Currency, itemId: string, updates: Partial<ExpenseItem>) => {
     const updateFn = (items: ExpenseItem[]) => 
       items.map(item => {
         if (item.id !== itemId) return item;
         const updated = { ...item, ...updates };
-        // Recalculate line total
         updated.lineTotal = updated.quantity * updated.unitPrice;
         return updated;
       });
     
     switch (currency) {
-      case 'NIS':
-        setItemsNIS(updateFn);
-        break;
-      case 'USD':
-        setItemsUSD(updateFn);
-        break;
-      case 'EUR':
-        setItemsEUR(updateFn);
-        break;
+      case 'NIS': setItemsNIS(updateFn); break;
+      case 'USD': setItemsUSD(updateFn); break;
+      case 'EUR': setItemsEUR(updateFn); break;
     }
-  }, []);
+  };
   
   // Remove expense item
   const removeExpenseItem = (currency: Currency, itemId: string) => {
     switch (currency) {
-      case 'NIS':
-        setItemsNIS(prev => prev.filter(item => item.id !== itemId));
-        break;
-      case 'USD':
-        setItemsUSD(prev => prev.filter(item => item.id !== itemId));
-        break;
-      case 'EUR':
-        setItemsEUR(prev => prev.filter(item => item.id !== itemId));
-        break;
+      case 'NIS': setItemsNIS(prev => prev.filter(item => item.id !== itemId)); break;
+      case 'USD': setItemsUSD(prev => prev.filter(item => item.id !== itemId)); break;
+      case 'EUR': setItemsEUR(prev => prev.filter(item => item.id !== itemId)); break;
     }
   };
   
   // Handle invoice upload
-  const handleInvoiceUpload = async (currency: Currency, itemId: string, file: File) => {
-    try {
-      // Convert to base64 for now (can use Supabase storage later)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        updateExpenseItem(currency, itemId, { invoiceBase64: base64 });
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error uploading invoice:', error);
-    }
+  const handleInvoiceUpload = (currency: Currency, itemId: string, file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      updateExpenseItem(currency, itemId, { invoiceBase64: base64 });
+    };
+    reader.readAsDataURL(file);
   };
   
   // Save expense report
@@ -239,7 +362,6 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
         updatedAt: new Date().toISOString(),
       };
       
-      // Update item report IDs
       const allItems = [
         ...itemsNIS.map(i => ({ ...i, expenseReportId: reportId })),
         ...itemsUSD.map(i => ({ ...i, expenseReportId: reportId })),
@@ -255,17 +377,11 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           text: submit ? t.expenseReportSubmitted : t.expenseReportSaved,
         });
       } else {
-        setSaveMessage({
-          type: 'error',
-          text: 'Failed to save expense report',
-        });
+        setSaveMessage({ type: 'error', text: 'Failed to save expense report' });
       }
     } catch (error) {
       console.error('Error saving expense report:', error);
-      setSaveMessage({
-        type: 'error',
-        text: 'Failed to save expense report',
-      });
+      setSaveMessage({ type: 'error', text: 'Failed to save expense report' });
     } finally {
       setIsSaving(false);
       setTimeout(() => setSaveMessage(null), 3000);
@@ -285,7 +401,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     return `${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
   };
   
-  // Generate month options (last 12 months)
+  // Generate month options
   const monthOptions = useMemo(() => {
     const options = [];
     const now = new Date();
@@ -318,14 +434,19 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     onExchangeRateChange?: (rate: number) => void;
     showExchangeRate?: boolean;
   }) => (
-    <div className="mb-8">
-      <h3 className="text-lg font-bold mb-4 text-[var(--f22-text)]">{title}</h3>
+    <div className="mb-10">
+      <h3 className="text-xl font-bold mb-6 text-[var(--f22-text)] flex items-center gap-3">
+        <span className="w-10 h-10 rounded-xl bg-[#39FF14]/20 flex items-center justify-center text-[#39FF14] text-lg">
+          {CURRENCY_SYMBOLS[currency]}
+        </span>
+        {title}
+      </h3>
       
-      {/* Header row */}
-      <div className="grid grid-cols-12 gap-2 mb-2 text-sm font-medium text-[var(--f22-text-muted)] border-b border-[var(--f22-border)] pb-2">
+      {/* Header row - desktop only */}
+      <div className="hidden md:grid grid-cols-12 gap-4 mb-4 text-sm font-medium text-[var(--f22-text-muted)] px-4">
         <div className="col-span-1">{t.quantity}</div>
         <div className="col-span-4">{t.description}</div>
-        <div className="col-span-2">{currency === 'NIS' ? t.total : t.unitPrice}</div>
+        <div className="col-span-2">{t.unitPrice}</div>
         <div className="col-span-2">{t.lineTotal}</div>
         <div className="col-span-2">{t.uploadInvoice}</div>
         <div className="col-span-1"></div>
@@ -333,144 +454,51 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
       
       {/* Expense items */}
       {items.map((item) => (
-        <div key={item.id} className="grid grid-cols-12 gap-2 mb-2 items-center">
-          {/* Quantity */}
-          <div className="col-span-1">
-            <select
-              value={item.quantity}
-              onChange={(e) => updateExpenseItem(currency, item.id, { quantity: parseInt(e.target.value) })}
-              className="w-full px-2 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm"
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Description */}
-          <div className="col-span-4">
-            <input
-              type="text"
-              value={item.description}
-              onChange={(e) => updateExpenseItem(currency, item.id, { description: e.target.value })}
-              placeholder={t.enterDescription}
-              className="w-full px-3 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
-            />
-          </div>
-          
-          {/* Unit Price / Total */}
-          <div className="col-span-2">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--f22-text-muted)]">
-                {CURRENCY_SYMBOLS[currency]}
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={item.unitPrice || ''}
-                onChange={(e) => updateExpenseItem(currency, item.id, { unitPrice: parseFloat(e.target.value) || 0 })}
-                placeholder="0.00"
-                className="w-full pl-7 pr-3 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
-              />
-            </div>
-          </div>
-          
-          {/* Line Total */}
-          <div className="col-span-2 text-[var(--f22-text)] font-medium px-3 py-2">
-            {formatCurrency(item.lineTotal, currency)}
-          </div>
-          
-          {/* Invoice Upload */}
-          <div className="col-span-2">
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              ref={(el) => { fileInputRefs.current[item.id] = el; }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleInvoiceUpload(currency, item.id, file);
-              }}
-              className="hidden"
-            />
-            {item.invoiceBase64 || item.invoiceUrl ? (
-              <div className="flex gap-1">
-                <button
-                  onClick={() => {
-                    const url = item.invoiceBase64 || item.invoiceUrl;
-                    if (url) window.open(url, '_blank');
-                  }}
-                  className="px-2 py-1 text-xs bg-[#39FF14]/20 text-[#39FF14] rounded hover:bg-[#39FF14]/30 transition-colors"
-                >
-                  {t.viewInvoice}
-                </button>
-                <button
-                  onClick={() => updateExpenseItem(currency, item.id, { invoiceBase64: undefined, invoiceUrl: undefined })}
-                  className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRefs.current[item.id]?.click()}
-                className="px-3 py-1 text-xs bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text-muted)] hover:border-[#39FF14] hover:text-[#39FF14] transition-colors"
-              >
-                📎 {t.uploadInvoice}
-              </button>
-            )}
-          </div>
-          
-          {/* Remove button */}
-          <div className="col-span-1">
-            <button
-              onClick={() => removeExpenseItem(currency, item.id)}
-              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
-              title={t.removeExpense}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <ExpenseItemRow
+          key={item.id}
+          item={item}
+          currency={currency}
+          onUpdate={(updates) => updateExpenseItem(currency, item.id, updates)}
+          onRemove={() => removeExpenseItem(currency, item.id)}
+          onInvoiceUpload={(file) => handleInvoiceUpload(currency, item.id, file)}
+        />
       ))}
       
       {/* Add expense button */}
       <button
         onClick={() => addExpenseItem(currency)}
-        className="flex items-center gap-2 px-4 py-2 mt-2 text-sm text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg hover:bg-[#39FF14]/20 transition-colors"
+        className="flex items-center gap-3 px-6 py-4 mt-4 text-base text-[#39FF14] bg-[#39FF14]/10 border-2 border-dashed border-[#39FF14]/40 rounded-xl hover:bg-[#39FF14]/20 hover:border-[#39FF14] transition-all w-full justify-center font-medium"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
         {t.addExpense}
       </button>
       
       {/* Totals */}
-      <div className="mt-4 border-t border-[var(--f22-border)] pt-4">
-        <div className="flex justify-end items-center gap-4">
-          <span className="text-[var(--f22-text-muted)]">{`Total ${currency}`}</span>
-          <span className="text-lg font-bold text-[var(--f22-text)] min-w-[120px] text-right">
+      <div className="mt-6 pt-6 border-t border-[var(--f22-border)]">
+        <div className="flex justify-end items-center gap-6 mb-3">
+          <span className="text-[var(--f22-text-muted)] text-lg">{`Total ${currency}`}</span>
+          <span className="text-xl font-bold text-[var(--f22-text)] min-w-[140px] text-right">
             {formatCurrency(total, currency)}
           </span>
         </div>
         
         {showExchangeRate && exchangeRate !== undefined && onExchangeRateChange && (
           <>
-            <div className="flex justify-end items-center gap-4 mt-2">
+            <div className="flex justify-end items-center gap-6 mb-3">
               <span className="text-[var(--f22-text-muted)]">{t.exchangeRate}</span>
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={exchangeRate}
                 onChange={(e) => onExchangeRateChange(parseFloat(e.target.value) || 0)}
-                className="w-24 px-3 py-1 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded text-[var(--f22-text)] text-right"
+                className="w-28 px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-right focus:outline-none focus:border-[#39FF14]"
               />
             </div>
-            <div className="flex justify-end items-center gap-4 mt-2">
-              <span className="text-[var(--f22-text-muted)]">{t.totalNIS}</span>
-              <span className="text-lg font-bold text-[#39FF14] min-w-[120px] text-right">
+            <div className="flex justify-end items-center gap-6">
+              <span className="text-[var(--f22-text-muted)] text-lg">{t.totalNIS}</span>
+              <span className="text-xl font-bold text-[#39FF14] min-w-[140px] text-right">
                 {formatCurrency(totalInNIS || 0, 'NIS')}
               </span>
             </div>
@@ -489,161 +517,165 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   }
   
   return (
-    <div className={`min-h-screen bg-[var(--f22-bg)] py-6 px-4 ${isRTL ? 'rtl' : 'ltr'}`}>
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <FitnessLogo />
-              <h1 className="text-2xl font-light text-[var(--f22-text-muted)]">{t.expenseReport}</h1>
+    <div className={`min-h-screen bg-[var(--f22-bg)] ${isRTL ? 'rtl' : 'ltr'}`}>
+      <div className="w-full px-4 sm:px-6 md:px-8 py-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          
+          {/* Header Card */}
+          <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+              <div className="flex items-center gap-4">
+                <FitnessLogo />
+                <h1 className="text-2xl font-light text-[var(--f22-text-muted)]">{t.expenseReport}</h1>
+              </div>
+              
+              {/* Month selector */}
+              <div className="flex items-center gap-4">
+                <label className="text-[var(--f22-text-muted)]">{t.selectMonth}:</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-5 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base"
+                >
+                  {monthOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             
-            {/* Month selector */}
-            <div className="flex items-center gap-4">
-              <label className="text-[var(--f22-text-muted)]">{t.selectMonth}:</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
-              >
-                {monthOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          {/* Employee and date info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-[var(--f22-border)]">
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <span className="text-[var(--f22-text-muted)] w-32">{t.employee}:</span>
-                <span className="font-semibold text-[var(--f22-text)]">{user.name}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[var(--f22-text-muted)] w-32">{t.expensePeriod}:</span>
-                <span className="font-semibold text-[var(--f22-text)]">{getExpensePeriod(selectedMonth)}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-4">
-                <span className="text-[var(--f22-text-muted)] w-32">{t.date}:</span>
-                <span className="font-semibold text-[var(--f22-text)]">{getCurrentDate()}</span>
-              </div>
-              {report?.status && (
+            {/* Employee and date info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-[var(--f22-border)]">
+              <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <span className="text-[var(--f22-text-muted)] w-32">Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    report.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                    report.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
-                    report.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {t[report.status]}
-                  </span>
+                  <span className="text-[var(--f22-text-muted)] w-36">{t.employee}:</span>
+                  <span className="font-semibold text-[var(--f22-text)] text-lg">{user.name}</span>
                 </div>
-              )}
+                <div className="flex items-center gap-4">
+                  <span className="text-[var(--f22-text-muted)] w-36">{t.expensePeriod}:</span>
+                  <span className="font-semibold text-[var(--f22-text)] text-lg">{getExpensePeriod(selectedMonth)}</span>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-[var(--f22-text-muted)] w-36">{t.date}:</span>
+                  <span className="font-semibold text-[var(--f22-text)] text-lg">{getCurrentDate()}</span>
+                </div>
+                {report?.status && (
+                  <div className="flex items-center gap-4">
+                    <span className="text-[var(--f22-text-muted)] w-36">Status:</span>
+                    <span className={`px-4 py-2 rounded-xl text-sm font-medium ${
+                      report.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                      report.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
+                      report.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {t[report.status]}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Checked/Approved by */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-[var(--f22-border)]">
+              <div className="flex items-center gap-4">
+                <span className="text-[var(--f22-text-muted)] w-36">{t.checkedBy}:</span>
+                <input
+                  type="text"
+                  value={checkedBy}
+                  onChange={(e) => setCheckedBy(e.target.value)}
+                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  disabled={report?.status !== 'draft' && report?.status !== undefined}
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-[var(--f22-text-muted)] w-36">{t.approvedBy}:</span>
+                <input
+                  type="text"
+                  value={approvedBy}
+                  onChange={(e) => setApprovedBy(e.target.value)}
+                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  disabled={report?.status !== 'draft' && report?.status !== undefined}
+                />
+              </div>
             </div>
           </div>
           
-          {/* Checked/Approved by */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--f22-text-muted)] w-32">{t.checkedBy}:</span>
-              <input
-                type="text"
-                value={checkedBy}
-                onChange={(e) => setCheckedBy(e.target.value)}
-                className="flex-1 px-3 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
-                disabled={report?.status !== 'draft' && report?.status !== undefined}
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-[var(--f22-text-muted)] w-32">{t.approvedBy}:</span>
-              <input
-                type="text"
-                value={approvedBy}
-                onChange={(e) => setApprovedBy(e.target.value)}
-                className="flex-1 px-3 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
-                disabled={report?.status !== 'draft' && report?.status !== undefined}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Expense sections */}
-        <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 mb-6">
-          {/* NIS Expenses */}
-          <ExpenseSection
-            currency="NIS"
-            title={t.expensesInNIS}
-            items={itemsNIS}
-            total={totals.totalNIS}
-          />
-          
-          {/* USD Expenses */}
-          <ExpenseSection
-            currency="USD"
-            title={t.expensesInUSD}
-            items={itemsUSD}
-            total={totals.totalUSD}
-            totalInNIS={totals.totalUSDInNIS}
-            exchangeRate={exchangeRateUSD}
-            onExchangeRateChange={setExchangeRateUSD}
-            showExchangeRate
-          />
-          
-          {/* EUR Expenses */}
-          <ExpenseSection
-            currency="EUR"
-            title={t.expensesInEUR}
-            items={itemsEUR}
-            total={totals.totalEUR}
-            totalInNIS={totals.totalEURInNIS}
-            exchangeRate={exchangeRateEUR}
-            onExchangeRateChange={setExchangeRateEUR}
-            showExchangeRate
-          />
-          
-          {/* Grand Total */}
-          <div className="mt-8 pt-6 border-t-2 border-[#39FF14]/30">
-            <div className="flex justify-end items-center gap-4">
-              <span className="text-xl font-bold text-[var(--f22-text)]">{t.grandTotal}</span>
-              <span className="text-2xl font-bold text-[#39FF14] min-w-[150px] text-right">
-                {formatCurrency(totals.grandTotalNIS, 'NIS')}
-              </span>
+          {/* Expense sections */}
+          <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+            {/* NIS Expenses */}
+            <ExpenseSection
+              currency="NIS"
+              title={t.expensesInNIS}
+              items={itemsNIS}
+              total={totals.totalNIS}
+            />
+            
+            {/* USD Expenses */}
+            <ExpenseSection
+              currency="USD"
+              title={t.expensesInUSD}
+              items={itemsUSD}
+              total={totals.totalUSD}
+              totalInNIS={totals.totalUSDInNIS}
+              exchangeRate={exchangeRateUSD}
+              onExchangeRateChange={setExchangeRateUSD}
+              showExchangeRate
+            />
+            
+            {/* EUR Expenses */}
+            <ExpenseSection
+              currency="EUR"
+              title={t.expensesInEUR}
+              items={itemsEUR}
+              total={totals.totalEUR}
+              totalInNIS={totals.totalEURInNIS}
+              exchangeRate={exchangeRateEUR}
+              onExchangeRateChange={setExchangeRateEUR}
+              showExchangeRate
+            />
+            
+            {/* Grand Total */}
+            <div className="mt-10 pt-8 border-t-2 border-[#39FF14]/30">
+              <div className="flex justify-end items-center gap-6">
+                <span className="text-2xl font-bold text-[var(--f22-text)]">{t.grandTotal}</span>
+                <span className="text-3xl font-bold text-[#39FF14] min-w-[180px] text-right">
+                  {formatCurrency(totals.grandTotalNIS, 'NIS')}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Save message */}
-        {saveMessage && (
-          <div className={`mb-4 p-4 rounded-lg ${
-            saveMessage.type === 'success' 
-              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
-            {saveMessage.text}
+          
+          {/* Save message */}
+          {saveMessage && (
+            <div className={`p-5 rounded-xl ${
+              saveMessage.type === 'success' 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+              {saveMessage.text}
+            </div>
+          )}
+          
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-4 justify-end pb-8">
+            <button
+              onClick={() => handleSave(false)}
+              disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
+              className="px-8 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] font-medium hover:border-[#39FF14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {isSaving ? '...' : t.saveExpenseReport}
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
+              className="px-8 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-xl font-bold hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
+            >
+              {isSaving ? '...' : t.submitExpenseReport}
+            </button>
           </div>
-        )}
-        
-        {/* Action buttons */}
-        <div className="flex flex-wrap gap-4 justify-end">
-          <button
-            onClick={() => handleSave(false)}
-            disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-            className="px-6 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-medium hover:border-[#39FF14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? '...' : t.saveExpenseReport}
-          </button>
-          <button
-            onClick={() => handleSave(true)}
-            disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-            className="px-6 py-3 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? '...' : t.submitExpenseReport}
-          </button>
+          
         </div>
       </div>
     </div>

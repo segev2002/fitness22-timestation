@@ -110,6 +110,7 @@ export const userToDb = (user: User): Omit<DbUser, 'created_at'> => ({
   password: user.password,
   profile_picture: user.profilePicture || null,
   is_admin: user.isAdmin || false,
+  is_disabled: user.isDisabled || false,
   department: user.department || null,
 });
 
@@ -389,15 +390,19 @@ export const supabaseUsers = {
     if (!supabase) return false;
     await ensureSupabaseUserContext();
 
+    const dbUser = userToDb(user);
+    console.log('Upserting user:', { id: dbUser.id, email: dbUser.email, name: dbUser.name });
+    
     const { error } = await supabase
       .from('users')
-      .upsert(userToDb(user), { onConflict: 'id' });
+      .upsert(dbUser, { onConflict: 'id' });
 
     if (error) {
-      console.error('Supabase upsertUser error:', error);
+      console.error('Supabase upsertUser error:', error.message, error.details, error.hint);
       return false;
     }
 
+    console.log('Upsert successful');
     return true;
   },
 

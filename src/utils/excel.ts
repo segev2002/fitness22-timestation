@@ -50,8 +50,12 @@ export const generateExcel = (options: ExportOptions): void => {
       displayNote = '';
     }
     
+    // Use current user name (from users list) instead of stored userName in shift
+    // This ensures the Excel always shows the latest name
+    const employeeName = user?.name || shift.userName;
+    
     return [
-      shift.userName,
+      employeeName,
       formatDate(shift.date, language),
       formatTime(shift.checkIn),
       shift.checkOut ? formatTime(shift.checkOut) : '-',

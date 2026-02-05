@@ -81,6 +81,7 @@ export const translations = {
     bulkFill: 'מילוי מרובה',
     applyTo: 'החל על',
     days: 'ימים',
+  employee: 'עובד',
     edit: 'ערוך',
     delete: 'מחק',
     
@@ -88,6 +89,10 @@ export const translations = {
     addNote: 'הוסף הערה למשמרת...',
     note: 'הערה',
     optional: 'אופציונלי',
+  // Export messaging (used in admin/export flows)
+  month: 'חודש',
+  noShiftsToExport: 'אין משמרות לייצוא בחודש הנבחר',
+  selectEmployeeFirst: 'יש לבחור עובד',
     
     
     // History
@@ -281,6 +286,7 @@ export const translations = {
     bulkFill: 'Bulk Fill',
     applyTo: 'Apply to',
     days: 'days',
+  employee: 'Employee',
     edit: 'Edit',
     delete: 'Delete',
     
@@ -288,6 +294,10 @@ export const translations = {
     addNote: 'Add note to shift...',
     note: 'Note',
     optional: 'optional',
+  // Export messaging (used in admin/export flows)
+  month: 'Month',
+  noShiftsToExport: 'No shifts to export for selected month',
+  selectEmployeeFirst: 'Please select an employee',
     
     
     // History

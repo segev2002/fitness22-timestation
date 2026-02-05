@@ -143,6 +143,8 @@ export const translations = {
     seconds: 'שניות',
     hoursAnd: 'שעות ו-',
     minutesShort: 'דקות',
+    shifts: 'משמרות',
+    unknownUser: 'משתמש לא ידוע',
     
     // Bulk work types
     workFromOffice: 'עבודה מהמשרד',
@@ -350,6 +352,8 @@ export const translations = {
     seconds: 'seconds',
     hoursAnd: 'hours and ',
     minutesShort: 'min',
+    shifts: 'shifts',
+    unknownUser: 'Unknown User',
     
     // Bulk work types
     workFromOffice: 'Work from Office',

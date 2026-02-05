@@ -1,5 +1,5 @@
 import type { User } from '../types';
-import { supabase, isSupabaseConfigured, supabaseUsers, setSupabaseUserId } from './supabase';
+import { supabase, isSupabaseConfigured, supabaseUsers, supabaseShifts, setSupabaseUserId } from './supabase';
 
 const USERS_KEY = 'attendance_users';
 const CURRENT_USER_KEY = 'attendance_current_user';
@@ -583,6 +583,11 @@ export const updateUserProfile = async (userId: string, name: string, profilePic
       if (!success) {
         console.error('Failed to update user profile in Supabase');
         return false;
+      }
+
+      // Also update userName in all shifts for this user
+      if (sourceUser.name !== name) {
+        await supabaseShifts.updateUserName(userId, name);
       }
 
       applyLocalUpdate(updatedUser);

@@ -313,6 +313,24 @@ export const supabaseShifts = {
 
     return subscription;
   },
+
+  // Update userName for all shifts of a user (when profile name changes)
+  async updateUserName(userId: string, newUserName: string): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+
+    const { error } = await supabase
+      .from('shifts')
+      .update({ user_name: newUserName })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Supabase updateUserName error:', error);
+      return false;
+    }
+
+    return true;
+  },
 };
 
 // Supabase CRUD operations for users

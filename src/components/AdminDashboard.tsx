@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Shift, User, ActiveShift } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { 
@@ -49,8 +49,42 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [editNote, setEditNote] = useState('');
   const [editBreakMinutes, setEditBreakMinutes] = useState(0);
 
-  // User filter for shifts
-  const [selectedUserId, setSelectedUserId] = useState<string>('all');
+  // Expanded users for collapsible shifts view
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+
+  // Toggle user expansion
+  const toggleUserExpansion = (userId: string) => {
+    setExpandedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  // Group shifts by user
+  const shiftsByUser = useMemo(() => {
+    const grouped: Record<string, { user: User | undefined; shifts: Shift[]; totalHours: number }> = {};
+    
+    for (const shift of shifts) {
+      if (!grouped[shift.userId]) {
+        grouped[shift.userId] = {
+          user: users.find(u => u.id === shift.userId),
+          shifts: [],
+          totalHours: 0,
+        };
+      }
+      grouped[shift.userId].shifts.push(shift);
+      grouped[shift.userId].totalHours += (shift.duration - (shift.breakMinutes || 0)) / 60;
+    }
+    
+    // Sort by user name
+    return Object.entries(grouped)
+      .sort(([, a], [, b]) => (a.user?.name || '').localeCompare(b.user?.name || ''));
+  }, [shifts, users]);
 
   // SECURITY: Verify admin status on mount and periodically
   useEffect(() => {
@@ -79,15 +113,10 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
   const filterShiftsForMonth = useCallback((allShifts: Shift[]) => {
     const [year, month] = selectedMonth.split('-').map(Number);
-    let filtered = allShifts.filter(s => {
+    const filtered = allShifts.filter(s => {
       const shiftDate = new Date(s.date);
       return shiftDate.getFullYear() === year && shiftDate.getMonth() === month - 1;
     });
-    
-    // Filter by selected user if not "all"
-    if (selectedUserId !== 'all') {
-      filtered = filtered.filter(s => s.userId === selectedUserId);
-    }
     
     // Sort by user name (alphabetically), then by date (newest first)
     filtered.sort((a, b) => {
@@ -97,7 +126,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     });
     
     return filtered;
-  }, [selectedMonth, selectedUserId]);
+  }, [selectedMonth]);
 
   const loadShifts = useCallback(async () => {
     await syncShiftsFromSupabase();
@@ -503,21 +532,6 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-lg font-bold text-[var(--f22-text)]">{t.allShifts}</h3>
             <div className="flex flex-wrap gap-3">
-              {/* User filter dropdown */}
-              <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-2 min-w-[150px]"
-              >
-                <option value="all">{t.allEmployees}</option>
-                {users
-                  .slice()
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))
-                }
-              </select>
               <input
                 type="month"
                 value={selectedMonth}
@@ -600,81 +614,119 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
             </div>
           )}
 
-          {/* Shifts Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-separate border-spacing-y-3">
-              <thead>
-                <tr>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.employee}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.date}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.checkInTime}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.checkOutTime}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.breakMinutes}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.duration}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.note}</th>
-                  <th className="text-left py-3 px-4 text-[var(--f22-text-muted)] font-medium">{t.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shifts.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-[var(--f22-text-muted)]">
-                      {t.noShiftsToShow}
-                    </td>
-                  </tr>
-                ) : (
-                  shifts.map(shift => {
-                    const breakMins = shift.breakMinutes || 0;
-                    const netDuration = shift.duration - breakMins;
-                    // Simplify note display
-                    let displayNote = shift.note || '';
-                    if (displayNote === 'Work from Office' || displayNote === 'עבודה מהמשרד') {
-                      displayNote = '';
-                    }
-                    
-                    return (
-                      <tr key={shift.id}>
-                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-l border-[var(--f22-border)] rounded-l-lg">{shift.userName}</td>
-                        <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                          {new Date(shift.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
-                        </td>
-                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{formatTime(shift.checkIn)}</td>
-                        <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                          {shift.checkOut ? formatTime(shift.checkOut) : '-'}
-                        </td>
-                        <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{breakMins || '-'}</td>
-                        <td className="py-4 px-4 text-[#39FF14] font-medium bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                          {formatDuration(Math.max(0, netDuration))}
-                        </td>
-                        <td className="py-4 px-4 text-[var(--f22-text-muted)] max-w-[200px] truncate bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                          {displayNote || '-'}
-                        </td>
-                        <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-r border-[var(--f22-border)] rounded-r-lg">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => openEditShift(shift)}
-                              className="p-2 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteShift(shift.id)}
-                              className="p-2 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+          {/* Shifts by User - Collapsible */}
+          <div className="space-y-3">
+            {shiftsByUser.length === 0 ? (
+              <div className="py-8 text-center text-[var(--f22-text-muted)]">
+                {t.noShiftsToShow}
+              </div>
+            ) : (
+              shiftsByUser.map(([odUserId, { user: shiftUser, shifts: userShifts, totalHours }]) => (
+                <div key={odUserId} className="border border-[var(--f22-border)] rounded-lg overflow-hidden">
+                  {/* User Header - Click to expand */}
+                  <button
+                    onClick={() => toggleUserExpansion(odUserId)}
+                    className="w-full flex items-center justify-between p-4 bg-[var(--f22-surface-light)] hover:bg-[var(--f22-surface)] transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#39FF14]/20 flex items-center justify-center">
+                        {shiftUser?.profilePicture ? (
+                          <img src={shiftUser.profilePicture} alt={shiftUser.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-[#39FF14] font-bold">
+                            {(shiftUser?.name || userShifts[0]?.userName || '?').charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[var(--f22-text)] font-medium">
+                          {shiftUser?.name || userShifts[0]?.userName || t.unknownUser}
+                        </span>
+                        <div className="text-sm text-[var(--f22-text-muted)]">
+                          {userShifts.length} {t.shifts} • {totalHours.toFixed(1)} {t.hours}
+                        </div>
+                      </div>
+                    </div>
+                    <svg 
+                      className={`w-5 h-5 text-[var(--f22-text-muted)] transition-transform ${expandedUsers.has(odUserId) ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* User Shifts - Expandable */}
+                  {expandedUsers.has(odUserId) && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-[var(--f22-bg)]">
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.date}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.checkInTime}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.checkOutTime}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.breakMinutes}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.duration}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.note}</th>
+                            <th className="text-left py-2 px-4 text-[var(--f22-text-muted)] font-medium text-sm">{t.actions}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userShifts.map(shift => {
+                            const breakMins = shift.breakMinutes || 0;
+                            const netDuration = shift.duration - breakMins;
+                            let displayNote = shift.note || '';
+                            if (displayNote === 'Work from Office' || displayNote === 'עבודה מהמשרד') {
+                              displayNote = '';
+                            }
+                            
+                            return (
+                              <tr key={shift.id} className="border-t border-[var(--f22-border)]">
+                                <td className="py-3 px-4 text-[var(--f22-text-muted)]">
+                                  {new Date(shift.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
+                                </td>
+                                <td className="py-3 px-4 text-[var(--f22-text)]">{formatTime(shift.checkIn)}</td>
+                                <td className="py-3 px-4 text-[var(--f22-text)]">
+                                  {shift.checkOut ? formatTime(shift.checkOut) : '-'}
+                                </td>
+                                <td className="py-3 px-4 text-[var(--f22-text-muted)]">{breakMins || '-'}</td>
+                                <td className="py-3 px-4 text-[#39FF14] font-medium">
+                                  {formatDuration(Math.max(0, netDuration))}
+                                </td>
+                                <td className="py-3 px-4 text-[var(--f22-text-muted)] max-w-[200px] truncate">
+                                  {displayNote || '-'}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => openEditShift(shift)}
+                                      className="p-2 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteShift(shift.id)}
+                                      className="p-2 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

@@ -107,6 +107,11 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
   const handleDayMouseDown = (date: Date, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return;
     
+    // Prevent selecting future dates
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    if (date > today) return;
+    
     setIsDragging(true);
     const dateStr = date.toISOString().split('T')[0];
     
@@ -123,6 +128,11 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
 
   const handleDayMouseEnter = (date: Date, isCurrentMonth: boolean) => {
     if (!isDragging || !isCurrentMonth) return;
+    
+    // Prevent selecting future dates
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    if (date > today) return;
     
     const dateStr = date.toISOString().split('T')[0];
     setSelectedDays(prev => {
@@ -164,8 +174,19 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
   };
 
   const handleApplyBulk = () => {
-    // Create shifts for all selected days
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    // Create shifts for all selected days (excluding future dates)
     selectedDays.forEach(dateStr => {
+      const shiftDate = new Date(dateStr);
+      
+      // Skip future dates (safety check)
+      if (shiftDate > today) {
+        console.warn('Skipping future date:', dateStr);
+        return;
+      }
+      
       const checkInDateTime = new Date(`${dateStr}T${formData.checkInTime}:00`);
       const checkOutDateTime = new Date(`${dateStr}T${formData.checkOutTime}:00`);
       
@@ -325,12 +346,17 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
               // Selected days: use gray in both modes for visibility
               const selectedBgColor = isDark ? '#6B7280' : '#6B7280';
               
+              // Check if date is in the future
+              const today = new Date();
+              today.setHours(23, 59, 59, 999);
+              const isFutureDate = day.date > today;
+              
               // Determine background color
               let bgColor: string;
               if (day.isSelected) {
                 bgColor = selectedBgColor;
-              } else if (!day.isCurrentMonth) {
-                // Days NOT in current month - use body background
+              } else if (!day.isCurrentMonth || isFutureDate) {
+                // Days NOT in current month or future dates - use body background
                 bgColor = 'var(--f22-bg)';
               } else if (day.hasShift) {
                 // Days with shifts - light green
@@ -349,13 +375,13 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                   onMouseDown={() => handleDayMouseDown(day.date, day.isCurrentMonth)}
                   onMouseEnter={() => handleDayMouseEnter(day.date, day.isCurrentMonth)}
                   className={`
-                    relative min-h-[40px] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-lg cursor-pointer transition-all
+                    relative min-h-[40px] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-lg transition-all
                     ${day.isSelected ? 'shadow-lg scale-105' : ''}
-                    ${!day.isCurrentMonth ? 'cursor-default opacity-40' : ''}
+                    ${!day.isCurrentMonth || isFutureDate ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
                   `}
                   style={{
                     backgroundColor: bgColor,
-                    color: !day.isCurrentMonth ? 'var(--f22-text-muted)' : 'var(--f22-text)'
+                    color: !day.isCurrentMonth || isFutureDate ? 'var(--f22-text-muted)' : 'var(--f22-text)'
                   }}
                 >
                   <span className={`text-sm sm:text-base font-bold ${

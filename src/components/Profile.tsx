@@ -293,7 +293,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                         type="password"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
                         placeholder={t.enterPassword}
                       />
                     </div>
@@ -303,7 +303,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
                         placeholder={t.enterPassword}
                       />
                     </div>
@@ -313,7 +313,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
                         placeholder={t.reenterPassword}
                       />
                     </div>

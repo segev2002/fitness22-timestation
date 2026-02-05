@@ -557,45 +557,72 @@ export const changeUserPassword = async (
   currentPassword: string, 
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
-  const users = getUsers();
-  const userIndex = users.findIndex(u => u.id === userId);
-  
-  if (userIndex === -1) {
-    return { success: false, error: 'userNotFound' };
-  }
-  
-  // Verify current password
-  if (users[userIndex].password !== currentPassword) {
-    return { success: false, error: 'incorrectPassword' };
-  }
-  
   // Validate new password
   if (newPassword.length < 6) {
     return { success: false, error: 'passwordTooShort' };
   }
-  
-  // Update password
-  users[userIndex].password = newPassword;
-  saveUsers(users);
-  
-  // Also update in Supabase database if configured
+
+  const users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  const localUser = userIndex === -1 ? null : users[userIndex];
+
+  // If Supabase is configured, validate against DB for cross-device consistency
   if (isSupabaseConfigured() && supabase) {
     try {
-      const success = await supabaseUsers.update(users[userIndex]);
-      if (!success) {
-        console.error('Failed to update password in Supabase');
+      const dbUser = await supabaseUsers.get(userId);
+      if (!dbUser) {
+        return { success: false, error: 'userNotFound' };
       }
+
+      if (dbUser.password !== currentPassword) {
+        return { success: false, error: 'incorrectPassword' };
+      }
+
+      const updatedUser = { ...dbUser, password: newPassword };
+      const success = await supabaseUsers.update(updatedUser);
+      if (!success) {
+        return { success: false, error: 'updateFailed' };
+      }
+
+      // Sync local users list
+      if (localUser) {
+        users[userIndex] = updatedUser;
+      } else {
+        users.push(updatedUser);
+      }
+      saveUsers(users);
+
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(updatedUser);
+      }
+
+      return { success: true };
     } catch (error) {
       console.error('Supabase changeUserPassword error:', error);
+      return { success: false, error: 'updateFailed' };
     }
   }
-  
-  // Update current user session if this is the logged-in user
+
+  // Fallback: local-only password update
+  if (!localUser) {
+    return { success: false, error: 'userNotFound' };
+  }
+
+  // Verify current password
+  if (localUser.password !== currentPassword) {
+    return { success: false, error: 'incorrectPassword' };
+  }
+
+  localUser.password = newPassword;
+  users[userIndex] = localUser;
+  saveUsers(users);
+
   const currentUser = getCurrentUser();
   if (currentUser && currentUser.id === userId) {
-    setCurrentUser(users[userIndex]);
+    setCurrentUser(localUser);
   }
-  
+
   return { success: true };
 };
 

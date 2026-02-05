@@ -522,33 +522,72 @@ export const logoutUser = (): void => {
 export const updateUserProfile = async (userId: string, name: string, profilePicture?: string): Promise<boolean> => {
   const users = getUsers();
   const userIndex = users.findIndex(u => u.id === userId);
-  
-  if (userIndex === -1) return false;
-  
-  users[userIndex].name = name;
-  if (profilePicture !== undefined) {
-    users[userIndex].profilePicture = profilePicture;
+
+  const applyLocalUpdate = (updatedUser: User) => {
+    if (userIndex === -1) {
+      users.push(updatedUser);
+    } else {
+      users[userIndex] = updatedUser;
+    }
+    saveUsers(users);
+
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      setCurrentUser(updatedUser);
+    }
+  };
+
+  if (userIndex !== -1) {
+    const updatedUser = {
+      ...users[userIndex],
+      name,
+      profilePicture: profilePicture !== undefined ? profilePicture : users[userIndex].profilePicture,
+    };
+
+    applyLocalUpdate(updatedUser);
+
+    // Also update in Supabase database if configured
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const success = await supabaseUsers.update(updatedUser);
+        if (!success) {
+          console.error('Failed to update user profile in Supabase');
+        }
+      } catch (error) {
+        console.error('Supabase updateUserProfile error:', error);
+      }
+    }
+
+    return true;
   }
-  saveUsers(users);
-  
-  // Also update in Supabase database if configured
+
+  // If user is not in localStorage but Supabase is configured, update there and sync locally
   if (isSupabaseConfigured() && supabase) {
     try {
-      const success = await supabaseUsers.update(users[userIndex]);
+      const dbUser = await supabaseUsers.get(userId);
+      if (!dbUser) return false;
+
+      const updatedUser = {
+        ...dbUser,
+        name,
+        profilePicture: profilePicture !== undefined ? profilePicture : dbUser.profilePicture,
+      };
+
+      const success = await supabaseUsers.update(updatedUser);
       if (!success) {
         console.error('Failed to update user profile in Supabase');
+        return false;
       }
+
+      applyLocalUpdate(updatedUser);
+      return true;
     } catch (error) {
       console.error('Supabase updateUserProfile error:', error);
+      return false;
     }
   }
-  
-  const currentUser = getCurrentUser();
-  if (currentUser && currentUser.id === userId) {
-    setCurrentUser(users[userIndex]);
-  }
-  
-  return true;
+
+  return false;
 };
 
 // Change user password (user can change their own password)

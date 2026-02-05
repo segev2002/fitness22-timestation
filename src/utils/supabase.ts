@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Shift, ActiveShift, User } from '../types';
+import type { Shift, ActiveShift, User, ExpenseReport, ExpenseItem, Currency } from '../types';
 
 // Environment variables for Supabase connection
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -561,6 +561,415 @@ export const supabaseActiveShift = {
           // Fetch all active shifts when any change happens
           const shifts = await this.getAll();
           callback(shifts);
+        }
+      )
+      .subscribe();
+    
+    return subscription;
+  },
+};
+
+// =====================================================
+// EXPENSE REPORTS - Database Types & Converters
+// =====================================================
+
+export interface DbExpenseReport {
+  id: string;
+  user_id: string;
+  user_name: string;
+  month: string;
+  expense_period: string;
+  checked_by: string | null;
+  approved_by: string | null;
+  total_nis: number;
+  total_usd: number;
+  exchange_rate_usd: number;
+  total_usd_in_nis: number;
+  total_eur: number;
+  exchange_rate_eur: number;
+  total_eur_in_nis: number;
+  grand_total_nis: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbExpenseItem {
+  id: string;
+  expense_report_id: string;
+  currency: string;
+  quantity: number;
+  description: string;
+  unit_price: number;
+  line_total: number;
+  invoice_url: string | null;
+  created_at: string;
+  sort_order: number;
+}
+
+export const expenseReportToDb = (report: ExpenseReport): Omit<DbExpenseReport, 'created_at' | 'updated_at'> => ({
+  id: report.id,
+  user_id: report.userId,
+  user_name: report.userName,
+  month: report.month,
+  expense_period: report.expensePeriod,
+  checked_by: report.checkedBy || null,
+  approved_by: report.approvedBy || null,
+  total_nis: report.totalNIS,
+  total_usd: report.totalUSD,
+  exchange_rate_usd: report.exchangeRateUSD,
+  total_usd_in_nis: report.totalUSDInNIS,
+  total_eur: report.totalEUR,
+  exchange_rate_eur: report.exchangeRateEUR,
+  total_eur_in_nis: report.totalEURInNIS,
+  grand_total_nis: report.grandTotalNIS,
+  status: report.status,
+});
+
+export const dbToExpenseReport = (db: DbExpenseReport, items: ExpenseItem[]): ExpenseReport => ({
+  id: db.id,
+  userId: db.user_id,
+  userName: db.user_name,
+  month: db.month,
+  expensePeriod: db.expense_period,
+  checkedBy: db.checked_by || undefined,
+  approvedBy: db.approved_by || undefined,
+  itemsNIS: items.filter(i => i.currency === 'NIS'),
+  totalNIS: db.total_nis,
+  itemsUSD: items.filter(i => i.currency === 'USD'),
+  totalUSD: db.total_usd,
+  exchangeRateUSD: db.exchange_rate_usd,
+  totalUSDInNIS: db.total_usd_in_nis,
+  itemsEUR: items.filter(i => i.currency === 'EUR'),
+  totalEUR: db.total_eur,
+  exchangeRateEUR: db.exchange_rate_eur,
+  totalEURInNIS: db.total_eur_in_nis,
+  grandTotalNIS: db.grand_total_nis,
+  status: db.status as 'draft' | 'submitted' | 'approved' | 'rejected',
+  createdAt: db.created_at,
+  updatedAt: db.updated_at,
+});
+
+export const expenseItemToDb = (item: ExpenseItem): Omit<DbExpenseItem, 'created_at'> => ({
+  id: item.id,
+  expense_report_id: item.expenseReportId,
+  currency: item.currency,
+  quantity: item.quantity,
+  description: item.description,
+  unit_price: item.unitPrice,
+  line_total: item.lineTotal,
+  invoice_url: item.invoiceUrl || null,
+  sort_order: 0,
+});
+
+export const dbToExpenseItem = (db: DbExpenseItem): ExpenseItem => ({
+  id: db.id,
+  expenseReportId: db.expense_report_id,
+  currency: db.currency as Currency,
+  quantity: db.quantity,
+  description: db.description,
+  unitPrice: db.unit_price,
+  lineTotal: db.line_total,
+  invoiceUrl: db.invoice_url || undefined,
+  createdAt: db.created_at,
+});
+
+// =====================================================
+// EXPENSE REPORTS - CRUD Operations
+// =====================================================
+
+export const supabaseExpenses = {
+  // Get expense report for a user for a specific month
+  async getForUserMonth(userId: string, month: string): Promise<ExpenseReport | null> {
+    if (!supabase) return null;
+    await ensureSupabaseUserContext();
+    
+    const { data: reportData, error: reportError } = await supabase
+      .from('expense_reports')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('month', month)
+      .single();
+    
+    if (reportError && reportError.code !== 'PGRST116') {
+      console.error('Supabase getExpenseReport error:', reportError);
+      return null;
+    }
+    
+    if (!reportData) return null;
+    
+    // Fetch items for this report
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('expense_items')
+      .select('*')
+      .eq('expense_report_id', reportData.id)
+      .order('sort_order', { ascending: true });
+    
+    if (itemsError) {
+      console.error('Supabase getExpenseItems error:', itemsError);
+      return null;
+    }
+    
+    const items = (itemsData || []).map(dbToExpenseItem);
+    return dbToExpenseReport(reportData, items);
+  },
+
+  // Get all expense reports for a user
+  async getAllForUser(userId: string): Promise<ExpenseReport[]> {
+    if (!supabase) return [];
+    await ensureSupabaseUserContext();
+    
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('expense_reports')
+      .select('*')
+      .eq('user_id', userId)
+      .order('month', { ascending: false });
+    
+    if (reportsError) {
+      console.error('Supabase getAllExpenseReports error:', reportsError);
+      return [];
+    }
+    
+    if (!reportsData || reportsData.length === 0) return [];
+    
+    // Fetch all items for all reports
+    const reportIds = reportsData.map(r => r.id);
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('expense_items')
+      .select('*')
+      .in('expense_report_id', reportIds)
+      .order('sort_order', { ascending: true });
+    
+    if (itemsError) {
+      console.error('Supabase getExpenseItems error:', itemsError);
+    }
+    
+    const items = (itemsData || []).map(dbToExpenseItem);
+    
+    return reportsData.map(report => 
+      dbToExpenseReport(report, items.filter(i => i.expenseReportId === report.id))
+    );
+  },
+
+  // Admin: Get all expense reports
+  async getAll(): Promise<ExpenseReport[]> {
+    if (!supabase) return [];
+    await ensureSupabaseUserContext();
+    
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('expense_reports')
+      .select('*')
+      .order('month', { ascending: false });
+    
+    if (reportsError) {
+      console.error('Supabase getAllExpenseReports error:', reportsError);
+      return [];
+    }
+    
+    if (!reportsData || reportsData.length === 0) return [];
+    
+    // Fetch all items for all reports
+    const reportIds = reportsData.map(r => r.id);
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('expense_items')
+      .select('*')
+      .in('expense_report_id', reportIds)
+      .order('sort_order', { ascending: true });
+    
+    if (itemsError) {
+      console.error('Supabase getExpenseItems error:', itemsError);
+    }
+    
+    const items = (itemsData || []).map(dbToExpenseItem);
+    
+    return reportsData.map(report => 
+      dbToExpenseReport(report, items.filter(i => i.expenseReportId === report.id))
+    );
+  },
+
+  // Admin: Get all expense reports for a specific month
+  async getAllForMonth(month: string): Promise<ExpenseReport[]> {
+    if (!supabase) return [];
+    await ensureSupabaseUserContext();
+    
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('expense_reports')
+      .select('*')
+      .eq('month', month)
+      .order('user_name', { ascending: true });
+    
+    if (reportsError) {
+      console.error('Supabase getAllExpenseReportsForMonth error:', reportsError);
+      return [];
+    }
+    
+    if (!reportsData || reportsData.length === 0) return [];
+    
+    const reportIds = reportsData.map(r => r.id);
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('expense_items')
+      .select('*')
+      .in('expense_report_id', reportIds)
+      .order('sort_order', { ascending: true });
+    
+    if (itemsError) {
+      console.error('Supabase getExpenseItems error:', itemsError);
+    }
+    
+    const items = (itemsData || []).map(dbToExpenseItem);
+    
+    return reportsData.map(report => 
+      dbToExpenseReport(report, items.filter(i => i.expenseReportId === report.id))
+    );
+  },
+
+  // Create or update expense report with items
+  async save(report: ExpenseReport, items: ExpenseItem[]): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+    
+    // Upsert the report
+    const { error: reportError } = await supabase
+      .from('expense_reports')
+      .upsert(expenseReportToDb(report), { onConflict: 'user_id,month' });
+    
+    if (reportError) {
+      console.error('Supabase saveExpenseReport error:', reportError);
+      return false;
+    }
+    
+    // Delete existing items for this report
+    const { error: deleteError } = await supabase
+      .from('expense_items')
+      .delete()
+      .eq('expense_report_id', report.id);
+    
+    if (deleteError) {
+      console.error('Supabase deleteExpenseItems error:', deleteError);
+      // Continue anyway - might be a new report with no items
+    }
+    
+    // Insert new items
+    if (items.length > 0) {
+      const dbItems = items.map((item, index) => ({
+        ...expenseItemToDb(item),
+        sort_order: index,
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('expense_items')
+        .insert(dbItems);
+      
+      if (itemsError) {
+        console.error('Supabase insertExpenseItems error:', itemsError);
+        return false;
+      }
+    }
+    
+    return true;
+  },
+
+  // Delete expense report
+  async delete(reportId: string): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+    
+    // Items will be cascade deleted due to foreign key
+    const { error } = await supabase
+      .from('expense_reports')
+      .delete()
+      .eq('id', reportId);
+    
+    if (error) {
+      console.error('Supabase deleteExpenseReport error:', error);
+      return false;
+    }
+    
+    return true;
+  },
+
+  // Update report status (admin only)
+  async updateStatus(reportId: string, status: string, approvedBy?: string): Promise<boolean> {
+    if (!supabase) return false;
+    await ensureSupabaseUserContext();
+    
+    const updateData: Record<string, string> = { status };
+    if (approvedBy) {
+      updateData.approved_by = approvedBy;
+    }
+    
+    const { error } = await supabase
+      .from('expense_reports')
+      .update(updateData)
+      .eq('id', reportId);
+    
+    if (error) {
+      console.error('Supabase updateExpenseStatus error:', error);
+      return false;
+    }
+    
+    return true;
+  },
+
+  // Upload invoice image to Supabase Storage
+  async uploadInvoice(file: File, userId: string, expenseItemId: string): Promise<string | null> {
+    if (!supabase) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${expenseItemId}_${Date.now()}.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('invoices')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+    
+    if (error) {
+      console.error('Supabase uploadInvoice error:', error);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('invoices')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  },
+
+  // Delete invoice from storage
+  async deleteInvoice(invoiceUrl: string): Promise<boolean> {
+    if (!supabase) return false;
+    
+    // Extract file path from URL
+    const urlParts = invoiceUrl.split('/invoices/');
+    if (urlParts.length < 2) return false;
+    
+    const filePath = urlParts[1];
+    
+    const { error } = await supabase.storage
+      .from('invoices')
+      .remove([filePath]);
+    
+    if (error) {
+      console.error('Supabase deleteInvoice error:', error);
+      return false;
+    }
+    
+    return true;
+  },
+
+  // Subscribe to expense report changes
+  subscribeToChanges(callback: () => void) {
+    if (!supabase) return null;
+    
+    const subscription = supabase
+      .channel('expense_reports_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'expense_reports' },
+        () => {
+          callback();
         }
       )
       .subscribe();

@@ -15,12 +15,13 @@ import {
 import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase, subscribeToShiftChanges } from '../utils/storage';
 import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
+import AdminExpenseReports from './AdminExpenseReports';
 
 interface AdminDashboardProps {
   user: User;
 }
 
-type AdminTab = 'users' | 'shifts' | 'live';
+type AdminTab = 'users' | 'shifts' | 'live' | 'expenses';
 
 const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const { t, language } = useLanguage();
@@ -364,6 +365,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
           { id: 'users' as AdminTab, label: t.allEmployees },
           { id: 'shifts' as AdminTab, label: t.allShifts },
           { id: 'live' as AdminTab, label: t.liveCheckIns },
+          { id: 'expenses' as AdminTab, label: t.expenseReports },
         ].map(tab => (
           <button
             key={tab.id}
@@ -798,6 +800,13 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Expense Reports Tab */}
+      {activeTab === 'expenses' && (
+        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-6 sm:p-8">
+          <AdminExpenseReports user={user} />
         </div>
       )}
     </div>

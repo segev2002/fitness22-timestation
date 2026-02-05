@@ -29,4 +29,53 @@ export interface ActiveShift {
   startTime: number; // timestamp
 }
 
-export type ViewType = 'home' | 'edit-activity' | 'profile' | 'admin';
+// Expense Report Types
+export type Currency = 'NIS' | 'USD' | 'EUR';
+
+export interface ExpenseItem {
+  id: string;
+  expenseReportId: string;
+  currency: Currency;
+  quantity: number;
+  description: string;
+  unitPrice: number;
+  lineTotal: number;
+  invoiceUrl?: string; // URL to uploaded invoice image
+  invoiceBase64?: string; // Base64 encoded invoice for local storage
+  createdAt: string;
+}
+
+export interface ExpenseReport {
+  id: string;
+  userId: string;
+  userName: string;
+  month: string; // Format: "YYYY-MM" (e.g., "2026-02")
+  expensePeriod: string; // Display format (e.g., "Feb, 2026")
+  checkedBy?: string;
+  approvedBy?: string;
+  
+  // NIS expenses
+  itemsNIS: ExpenseItem[];
+  totalNIS: number;
+  
+  // USD expenses
+  itemsUSD: ExpenseItem[];
+  totalUSD: number;
+  exchangeRateUSD: number;
+  totalUSDInNIS: number;
+  
+  // EUR expenses
+  itemsEUR: ExpenseItem[];
+  totalEUR: number;
+  exchangeRateEUR: number;
+  totalEURInNIS: number;
+  
+  // Grand total
+  grandTotalNIS: number;
+  
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ViewType = 'home' | 'edit-activity' | 'profile' | 'admin' | 'expenses';

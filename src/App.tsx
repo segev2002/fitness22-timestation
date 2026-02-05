@@ -7,6 +7,7 @@ import Home from './components/Home';
 import EditActivity from './components/EditActivity';
 import Profile from './components/Profile';
 import AdminDashboard from './components/AdminDashboard';
+import ExpenseReportPage from './components/ExpenseReportPage';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -156,6 +157,9 @@ function App() {
         )}
         {currentView === 'profile' && (
           <Profile user={user} onUserUpdate={handleUserUpdate} />
+        )}
+        {currentView === 'expenses' && (
+          <ExpenseReportPage user={user} />
         )}
         {currentView === 'admin' && isUserAdmin(user) ? (
           <AdminDashboard user={user} />

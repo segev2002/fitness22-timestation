@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Shift, User, ActiveShift } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { 
-  getUsers, 
   adminCreateUser, 
   adminToggleUserAdmin, 
   adminUpdateUserDepartment,
@@ -11,6 +10,7 @@ import {
   isPrimaryAdmin,
   DEPARTMENTS,
   validateAdminAsync,
+  syncUsersFromSupabase,
 } from '../utils/auth';
 import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase, subscribeToShiftChanges } from '../utils/storage';
 import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
@@ -49,6 +49,9 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [editNote, setEditNote] = useState('');
   const [editBreakMinutes, setEditBreakMinutes] = useState(0);
 
+  // User filter for shifts
+  const [selectedUserId, setSelectedUserId] = useState<string>('all');
+
   // SECURITY: Verify admin status on mount and periodically
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -69,17 +72,32 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   }, [user]);
 
   // Load data
-  const loadUsers = useCallback(() => {
-    setUsers(getUsers());
+  const loadUsers = useCallback(async () => {
+    const syncedUsers = await syncUsersFromSupabase();
+    setUsers(syncedUsers);
   }, []);
 
   const filterShiftsForMonth = useCallback((allShifts: Shift[]) => {
     const [year, month] = selectedMonth.split('-').map(Number);
-    return allShifts.filter(s => {
+    let filtered = allShifts.filter(s => {
       const shiftDate = new Date(s.date);
       return shiftDate.getFullYear() === year && shiftDate.getMonth() === month - 1;
     });
-  }, [selectedMonth]);
+    
+    // Filter by selected user if not "all"
+    if (selectedUserId !== 'all') {
+      filtered = filtered.filter(s => s.userId === selectedUserId);
+    }
+    
+    // Sort by user name (alphabetically), then by date (newest first)
+    filtered.sort((a, b) => {
+      const nameCompare = a.userName.localeCompare(b.userName);
+      if (nameCompare !== 0) return nameCompare;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+    
+    return filtered;
+  }, [selectedMonth, selectedUserId]);
 
   const loadShifts = useCallback(async () => {
     await syncShiftsFromSupabase();
@@ -103,9 +121,9 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     // Only load data if admin is verified
     if (!isAdminVerified) return;
     
-    loadUsers();
-  void loadShifts();
-    loadActiveShifts();
+    void loadUsers();
+    void loadShifts();
+    void loadActiveShifts();
     
     // Subscribe to realtime active shifts changes
     const subscription = supabaseActiveShift.subscribeToChanges((newShifts) => {
@@ -173,7 +191,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserDepartment('');
-      loadUsers();
+      void loadUsers();
       alert(t.userCreated);
     } else {
       setFormError(result.error === 'emailExists' ? t.emailExists : t.notAuthorized);
@@ -184,7 +202,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const handleToggleAdmin = async (targetUserId: string, makeAdmin: boolean) => {
     const result = await adminToggleUserAdmin(user, targetUserId, makeAdmin);
     if (result.success) {
-      loadUsers();
+      void loadUsers();
     } else {
       alert(result.error === 'onlyPrimaryAdmin' ? t.onlyPrimaryAdmin : t.notAuthorized);
     }
@@ -194,7 +212,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const handleUpdateDepartment = async (targetUserId: string, department: string) => {
     const result = await adminUpdateUserDepartment(user, targetUserId, department);
     if (result.success) {
-      loadUsers();
+      void loadUsers();
     } else {
       alert(t.onlyPrimaryAdmin);
     }
@@ -206,7 +224,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     
     const result = await adminDeleteUser(user, targetUserId);
     if (result.success) {
-      loadUsers();
+      void loadUsers();
     } else {
       if (result.error === 'cannotDeletePrimaryAdmin') {
         alert(t.cannotDeletePrimaryAdmin);
@@ -484,7 +502,22 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
         <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-lg font-bold text-[var(--f22-text)]">{t.allShifts}</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
+              {/* User filter dropdown */}
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-2 min-w-[150px]"
+              >
+                <option value="all">{t.allEmployees}</option>
+                {users
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))
+                }
+              </select>
               <input
                 type="month"
                 value={selectedMonth}

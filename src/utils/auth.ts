@@ -42,6 +42,39 @@ export const saveUsers = (users: User[]): void => {
 };
 
 /**
+ * Sync users from Supabase to localStorage
+ * This ensures admin can see all users on any device
+ */
+export const syncUsersFromSupabase = async (): Promise<User[]> => {
+  if (!isSupabaseConfigured() || !supabase) {
+    return getUsers();
+  }
+
+  try {
+    const dbUsers = await supabaseUsers.getAll();
+    if (dbUsers.length > 0) {
+      // Merge with local users (DB takes precedence)
+      const localUsers = getUsers();
+      const mergedUsers = [...dbUsers];
+      
+      // Add any local-only users that don't exist in DB
+      for (const localUser of localUsers) {
+        if (!mergedUsers.find(u => u.id === localUser.id || u.email === localUser.email)) {
+          mergedUsers.push(localUser);
+        }
+      }
+      
+      saveUsers(mergedUsers);
+      return mergedUsers;
+    }
+    return getUsers();
+  } catch (error) {
+    console.error('Failed to sync users from Supabase:', error);
+    return getUsers();
+  }
+};
+
+/**
  * SECURITY: Get current user with validation
  * - Validates session token matches stored token
  * - Validates user still exists and is not disabled

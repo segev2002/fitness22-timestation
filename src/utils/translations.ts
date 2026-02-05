@@ -81,7 +81,6 @@ export const translations = {
     bulkFill: 'מילוי מרובה',
     applyTo: 'החל על',
     days: 'ימים',
-    exportPDF: 'ייצא PDF',
     edit: 'ערוך',
     delete: 'מחק',
     
@@ -90,12 +89,6 @@ export const translations = {
     note: 'הערה',
     optional: 'אופציונלי',
     
-    // PDF Export
-    pdfExport: 'ייצוא דו"ח PDF',
-    employee: 'עובד',
-    month: 'חודש',
-    noShiftsToExport: 'אין משמרות לייצוא בחודש הנבחר',
-    selectEmployeeFirst: 'יש לבחור עובד',
     
     // History
     shiftHistory: 'היסטוריית משמרות',
@@ -288,7 +281,6 @@ export const translations = {
     bulkFill: 'Bulk Fill',
     applyTo: 'Apply to',
     days: 'days',
-    exportPDF: 'Export PDF',
     edit: 'Edit',
     delete: 'Delete',
     
@@ -297,12 +289,6 @@ export const translations = {
     note: 'Note',
     optional: 'optional',
     
-    // PDF Export
-    pdfExport: 'Export PDF Report',
-    employee: 'Employee',
-    month: 'Month',
-    noShiftsToExport: 'No shifts to export for selected month',
-    selectEmployeeFirst: 'Please select an employee',
     
     // History
     shiftHistory: 'Shift History',

@@ -520,6 +520,7 @@ export const logoutUser = (): void => {
 };
 
 export const updateUserProfile = async (userId: string, name: string, profilePicture?: string): Promise<boolean> => {
+  setSupabaseUserId(userId);
   const users = getUsers();
   const userIndex = users.findIndex(u => u.id === userId);
 
@@ -537,40 +538,15 @@ export const updateUserProfile = async (userId: string, name: string, profilePic
     }
   };
 
-  if (userIndex !== -1) {
-    const updatedUser = {
-      ...users[userIndex],
-      name,
-      profilePicture: profilePicture !== undefined ? profilePicture : users[userIndex].profilePicture,
-    };
-
-    applyLocalUpdate(updatedUser);
-
-    // Also update in Supabase database if configured
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const success = await supabaseUsers.update(updatedUser);
-        if (!success) {
-          console.error('Failed to update user profile in Supabase');
-        }
-      } catch (error) {
-        console.error('Supabase updateUserProfile error:', error);
-      }
-    }
-
-    return true;
-  }
-
-  // If user is not in localStorage but Supabase is configured, update there and sync locally
   if (isSupabaseConfigured() && supabase) {
     try {
-      const dbUser = await supabaseUsers.get(userId);
-      if (!dbUser) return false;
+      const sourceUser = userIndex !== -1 ? users[userIndex] : await supabaseUsers.get(userId);
+      if (!sourceUser) return false;
 
       const updatedUser = {
-        ...dbUser,
+        ...sourceUser,
         name,
-        profilePicture: profilePicture !== undefined ? profilePicture : dbUser.profilePicture,
+        profilePicture: profilePicture !== undefined ? profilePicture : sourceUser.profilePicture,
       };
 
       const success = await supabaseUsers.update(updatedUser);
@@ -587,7 +563,16 @@ export const updateUserProfile = async (userId: string, name: string, profilePic
     }
   }
 
-  return false;
+  if (userIndex === -1) return false;
+
+  const updatedUser = {
+    ...users[userIndex],
+    name,
+    profilePicture: profilePicture !== undefined ? profilePicture : users[userIndex].profilePicture,
+  };
+
+  applyLocalUpdate(updatedUser);
+  return true;
 };
 
 // Change user password (user can change their own password)

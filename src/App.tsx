@@ -6,7 +6,6 @@ import Header from './components/Header';
 import Home from './components/Home';
 import EditActivity from './components/EditActivity';
 import Profile from './components/Profile';
-import PDFExport from './components/PDFExport';
 import AdminDashboard from './components/AdminDashboard';
 
 function App() {
@@ -148,9 +147,6 @@ function App() {
         )}
         {currentView === 'profile' && (
           <Profile user={user} onUserUpdate={handleUserUpdate} />
-        )}
-        {currentView === 'pdf-export' && (
-          <PDFExport user={user} />
         )}
         {currentView === 'admin' && isUserAdmin(user) ? (
           <AdminDashboard user={user} />

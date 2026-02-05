@@ -29,4 +29,4 @@ export interface ActiveShift {
   startTime: number; // timestamp
 }
 
-export type ViewType = 'home' | 'edit-activity' | 'profile' | 'pdf-export' | 'admin';
+export type ViewType = 'home' | 'edit-activity' | 'profile' | 'admin';

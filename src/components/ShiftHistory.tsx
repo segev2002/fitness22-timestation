@@ -9,13 +9,14 @@ interface ShiftHistoryProps {
 }
 
 const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
-  const { t, language, isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [editForm, setEditForm] = useState({
     checkInDate: '',
     checkInTime: '',
     checkOutDate: '',
     checkOutTime: '',
+    breakMinutes: 0,
     note: '',
     dayType: 'office' as 'office' | 'home' | 'sickDay' | 'other',
   });
@@ -40,11 +41,12 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
   };
 
   const formatTime = (dateStr: string): string => {
-    return new Date(dateStr).toLocaleTimeString(language === 'he' ? 'he-IL' : 'en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false
-    });
+    const date = new Date(dateStr);
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hh = String(hours).padStart(2, '0');
+    return `${hh}:${minutes}${suffix}`;
   };
 
   const handleEdit = (shift: Shift) => {
@@ -70,6 +72,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
       checkInTime: checkInDate.toTimeString().slice(0, 5),
       checkOutDate: checkOutDate.toISOString().split('T')[0],
       checkOutTime: checkOutDate.toTimeString().slice(0, 5),
+      breakMinutes: shift.breakMinutes || 0,
       note: shift.note,
       dayType: detectedDayType,
     });
@@ -114,6 +117,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
       checkOut: checkOutDateTime ? checkOutDateTime.toISOString() : null,
       note: noteText,
       duration,
+      breakMinutes: editForm.breakMinutes,
     };
 
     updateShift(updatedShift);
@@ -291,6 +295,18 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Break Minutes */}
+              <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-5 border border-[var(--f22-border)]">
+                <label className="block text-[var(--f22-text)] mb-3 md:mb-4 font-bold text-base md:text-lg">{t.breakMinutes}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.breakMinutes}
+                  onChange={(e) => setEditForm({ ...editForm, breakMinutes: parseInt(e.target.value, 10) || 0 })}
+                  className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                />
               </div>
               
               {/* Day Type */}

@@ -16,16 +16,23 @@ const formatDuration = (minutes: number): string => {
   return `${hours}:${mins.toString().padStart(2, '0')}`;
 };
 
-// Format date for display
-const formatDate = (dateStr: string, language: 'he' | 'en'): string => {
+// Format date for display (DD/MM/YYYY)
+const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 };
 
-// Format time from ISO string
+// Format time from ISO string (HH:MMAM/PM)
 const formatTime = (isoString: string): string => {
   const date = new Date(isoString);
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  const hh = String(hours).padStart(2, '0');
+  return `${hh}:${minutes}${suffix}`;
 };
 
 export const generateExcel = (options: ExportOptions): void => {
@@ -56,7 +63,7 @@ export const generateExcel = (options: ExportOptions): void => {
     
     return [
       employeeName,
-      formatDate(shift.date, language),
+  formatDate(shift.date),
       formatTime(shift.checkIn),
       shift.checkOut ? formatTime(shift.checkOut) : '-',
       breakMins || '',

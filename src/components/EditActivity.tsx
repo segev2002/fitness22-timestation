@@ -21,6 +21,7 @@ interface DayInfo {
 interface BulkFormData {
   checkInTime: string;
   checkOutTime: string;
+  breakMinutes: number;
   dayType: 'office' | 'home' | 'sickDay' | 'other';
   note: string;
 }
@@ -36,6 +37,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
   const [formData, setFormData] = useState<BulkFormData>({
     checkInTime: '09:00',
     checkOutTime: '17:00',
+    breakMinutes: 0,
     dayType: 'office',
     note: '',
   });
@@ -213,6 +215,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
         checkOut: checkOutDateTime.toISOString(),
         note: noteText,
         duration: Math.max(0, duration),
+        breakMinutes: formData.breakMinutes || 0,
       };
 
       addShift(newShift);
@@ -224,6 +227,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
     setFormData({
       checkInTime: '09:00',
       checkOutTime: '17:00',
+      breakMinutes: 0,
       dayType: 'office',
       note: '',
     });
@@ -473,6 +477,17 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                       type="time"
                       value={formData.checkOutTime}
                       onChange={(e) => setFormData({ ...formData, checkOutTime: e.target.value })}
+                      className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] transition-all"
+                      style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.breakMinutes}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.breakMinutes}
+                      onChange={(e) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value, 10) || 0 })}
                       className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] transition-all"
                       style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
                     />

@@ -321,12 +321,23 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     }
   };
 
-  // Format time for display
+  // Format date for display (DD/MM/YYYY)
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Format time for display (HH:MMAM/PM)
   const formatTime = (isoString: string) => {
-    return new Date(isoString).toLocaleTimeString(language === 'he' ? 'he-IL' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const date = new Date(isoString);
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hh = String(hours).padStart(2, '0');
+    return `${hh}:${minutes}${suffix}`;
   };
 
   const formatDuration = (minutes: number) => {
@@ -684,7 +695,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                             return (
                               <tr key={shift.id} className="border-t border-[var(--f22-border)]">
                                 <td className="py-3 px-4 text-[var(--f22-text-muted)]">
-                                  {new Date(shift.date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US')}
+                                  {formatDate(shift.date)}
                                 </td>
                                 <td className="py-3 px-4 text-[var(--f22-text)]">{formatTime(shift.checkIn)}</td>
                                 <td className="py-3 px-4 text-[var(--f22-text)]">

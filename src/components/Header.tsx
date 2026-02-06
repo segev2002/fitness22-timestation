@@ -434,7 +434,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
             </div>
             <button
               onClick={hideIOSInstructions}
-              className="mt-6 w-full py-3 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#00D438] transition-colors min-h-[48px]"
+              className="mt-6 w-full py-3 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-colors min-h-[48px]"
             >
               {t.close}
             </button>

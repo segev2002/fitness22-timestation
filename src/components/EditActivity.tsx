@@ -394,13 +394,13 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                       : day.isSelected 
                         ? 'text-white'
                         : day.hasShift && day.isCurrentMonth
-                          ? 'text-green-500' 
+                          ? 'text-[var(--f22-green)]' 
                           : ''
                   }`}>
                     {day.dayNumber}
                   </span>
                   {day.hasShift && !day.isSelected && day.isCurrentMonth && (
-                    <div className="absolute bottom-1 sm:bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"></div>
+                    <div className="absolute bottom-1 sm:bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[var(--f22-green)] rounded-full"></div>
                   )}
                 </div>
               );
@@ -439,7 +439,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
             <button
               onClick={handleBulkFill}
               disabled={selectedDays.size === 0}
-              className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] bg-[#39FF14] text-[#0D0D0D] rounded-lg hover:bg-[#00D438] transition-all font-bold disabled:bg-[#333333] disabled:text-gray-600 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
+              className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] bg-[#39FF14] text-[#0D0D0D] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold disabled:bg-[#333333] disabled:text-gray-600 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -546,7 +546,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                 </button>
                 <button
                   onClick={handleApplyBulk}
-                  className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 sm:py-4 min-h-[44px] sm:min-h-[48px] rounded-lg hover:bg-[#00D438] transition-all font-bold text-sm sm:text-base shadow-lg flex items-center justify-center gap-2 sm:gap-3"
+                  className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 sm:py-4 min-h-[44px] sm:min-h-[48px] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold text-sm sm:text-base shadow-lg flex items-center justify-center gap-2 sm:gap-3"
                 >
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

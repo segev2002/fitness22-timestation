@@ -388,7 +388,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
             <h3 className="text-lg font-bold text-[var(--f22-text)]">{t.userManagement}</h3>
             <button
               onClick={() => setShowAddUser(true)}
-              className="bg-[#39FF14] text-[#0D0D0D] px-3 py-2 lg:px-4 lg:py-2.5 min-h-[44px] rounded-lg font-medium hover:bg-[#00D438] transition-all flex items-center gap-2 text-sm shadow-md shadow-[#39FF14]/30"
+              className="bg-[#39FF14] text-[#0D0D0D] px-3 py-2 lg:px-4 lg:py-2.5 min-h-[44px] rounded-lg font-medium hover:bg-[var(--f22-green)] transition-all flex items-center gap-2 text-sm shadow-md shadow-[#39FF14]/30"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -446,7 +446,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={handleCreateUser}
-                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[#00D438]"
+                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[var(--f22-green)]"
                   >
                     {t.save}
                   </button>
@@ -553,7 +553,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
               />
               <button
                 onClick={handleExportExcel}
-                className="bg-[#39FF14] text-[#0D0D0D] px-4 py-2 rounded-lg font-medium hover:bg-[#00D438] flex items-center gap-2"
+                className="bg-[#39FF14] text-[#0D0D0D] px-4 py-2 rounded-lg font-medium hover:bg-[var(--f22-green)] flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -612,7 +612,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={handleSaveShift}
-                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[#00D438]"
+                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[var(--f22-green)]"
                   >
                     {t.save}
                   </button>

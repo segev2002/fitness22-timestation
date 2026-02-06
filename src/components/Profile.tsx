@@ -154,7 +154,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-3">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-[#39FF14] text-[#0D0D0D] p-2.5 rounded-full shadow-lg hover:bg-[#00D438] transition-all"
+                    className="bg-[#39FF14] text-[#0D0D0D] p-2.5 rounded-full shadow-lg hover:bg-[var(--f22-green)] transition-all"
                     title={t.changePhoto}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
               </div>
             )}
             {saveSuccess && (
-              <div className="w-full text-center bg-green-500/20 text-green-400 px-4 py-2 rounded-lg text-sm">
+              <div className="w-full text-center bg-[var(--f22-green)]/20 text-[var(--f22-green)] px-4 py-2 rounded-lg text-sm">
                 {t.profileSaveSuccess}
               </div>
             )}
@@ -249,7 +249,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                       setSaveError('');
                       setSaveSuccess(false);
                     }}
-                    className="flex items-center justify-center gap-3 bg-[#39FF14] text-[#0D0D0D] px-6 md:px-8 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[#00D438] transition-all shadow-lg shadow-[#39FF14]/30 transform hover:scale-105"
+                    className="flex items-center justify-center gap-3 bg-[#39FF14] text-[#0D0D0D] px-6 md:px-8 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-all shadow-lg shadow-[#39FF14]/30 transform hover:scale-105"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -277,7 +277,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                   <button
                     onClick={handleSave}
                     disabled={isSaving || !name.trim()}
-                    className="flex items-center justify-center gap-2 bg-[#39FF14] text-[#0D0D0D] px-6 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[#00D438] transition-all shadow-lg shadow-[#39FF14]/30 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 bg-[#39FF14] text-[#0D0D0D] px-6 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-all shadow-lg shadow-[#39FF14]/30 disabled:opacity-50"
                   >
                     {isSaving ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -308,7 +308,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                   )}
                   
                   {passwordSuccess && (
-                    <div className="bg-green-500/20 text-green-500 px-4 py-2 rounded-lg mb-4 text-sm">
+                    <div className="bg-[var(--f22-green)]/20 text-[var(--f22-green)] px-4 py-2 rounded-lg mb-4 text-sm">
                       {t.passwordChanged}
                     </div>
                   )}
@@ -349,7 +349,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                   <div className="flex gap-3 mt-6">
                     <button
                       onClick={handlePasswordChange}
-                      className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[#00D438]"
+                      className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[var(--f22-green)]"
                     >
                       {t.save}
                     </button>

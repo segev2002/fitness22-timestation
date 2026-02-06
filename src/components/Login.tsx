@@ -142,7 +142,7 @@ const Login = ({ onLogin }: LoginProps) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#39FF14] text-[#0D0D0D] py-4 min-h-[48px] rounded-lg text-lg font-bold hover:bg-[#00D438] transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] flex items-center justify-center gap-3"
+                className="w-full bg-[#39FF14] text-[#0D0D0D] py-4 min-h-[48px] rounded-lg text-lg font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] flex items-center justify-center gap-3"
               >
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">

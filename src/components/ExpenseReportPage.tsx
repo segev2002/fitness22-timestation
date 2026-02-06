@@ -44,6 +44,7 @@ const ExpenseItemRow = ({
   useEffect(() => {
     setLocalPrice(item.unitPrice ? String(item.unitPrice) : '');
     setLocalDescription(item.description);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]); // Only reset when item ID changes (new item)
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -628,7 +629,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           {saveMessage && (
             <div className={`p-5 rounded-lg ${
               saveMessage.type === 'success' 
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                ? 'bg-[var(--f22-green)]/20 text-[var(--f22-green)] border border-[var(--f22-green)]/30' 
                 : 'bg-red-500/20 text-red-400 border border-red-500/30'
             }`}>
               {saveMessage.text}

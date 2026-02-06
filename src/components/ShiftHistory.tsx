@@ -356,7 +356,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 md:py-4 min-h-[44px] md:min-h-[48px] rounded-lg hover:bg-[#00D438] transition-all font-bold text-sm md:text-base shadow-lg shadow-[#39FF14]/30"
+                className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 md:py-4 min-h-[44px] md:min-h-[48px] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold text-sm md:text-base shadow-lg shadow-[#39FF14]/30"
               >
                 {t.save}
               </button>

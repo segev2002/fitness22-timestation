@@ -16,6 +16,7 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
 };
 
 const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
+  void user;
   const { t, language } = useLanguage();
   const isRTL = language === 'he';
   
@@ -100,23 +101,19 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     return `${CURRENCY_SYMBOLS[currency]}${value.toFixed(2)}`;
   };
   
-  // Handle status update
-  const handleStatusUpdate = async (reportId: string, status: 'approved' | 'rejected') => {
-    try {
-      await supabaseExpenses.updateStatus(reportId, status, user.name);
-      // Refresh reports
-      const updatedReports = await supabaseExpenses.getAllForMonth(selectedMonth);
-      setReports(updatedReports);
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
-  };
-  
   // Generate PDF for a report
   const generatePDF = useCallback((report: ExpenseReport) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPos = 20;
+    const requestDate = report.createdAt ? new Date(report.createdAt) : new Date();
+    const formatNumber = (value: number) => new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+    const formatCurrencyForPdf = (value: number, currency: Currency) => {
+      return `${currency} ${formatNumber(value)}`;
+    };
     
     // Header
     doc.setFontSize(24);
@@ -131,8 +128,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     // Employee info
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Employee: ${report.userName}`, 20, yPos);
-    doc.text(`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth - 80, yPos);
+  doc.text(`Employee: ${report.userName}`, 20, yPos);
+  doc.text(`Request Date: ${requestDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth - 90, yPos);
     
     yPos += 7;
     doc.text(`Expense Period: ${report.expensePeriod}`, 20, yPos);
@@ -173,8 +170,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
       for (const item of items) {
         doc.text(String(item.quantity), 22, yPos);
         doc.text(item.description.substring(0, 40), 40, yPos);
-        doc.text(formatCurrency(item.unitPrice, currency), 120, yPos);
-        doc.text(formatCurrency(item.lineTotal, currency), 155, yPos);
+  doc.text(formatCurrencyForPdf(item.unitPrice, currency), 120, yPos);
+  doc.text(formatCurrencyForPdf(item.lineTotal, currency), 155, yPos);
         yPos += 6;
         
         // Check for page overflow
@@ -187,8 +184,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
       // Total
       yPos += 3;
       doc.setFont('helvetica', 'bold');
-      doc.text(`Total ${currency}:`, 120, yPos);
-      doc.text(formatCurrency(total, currency), 155, yPos);
+  doc.text(`Total ${currency}:`, 120, yPos);
+  doc.text(formatCurrencyForPdf(total, currency), 155, yPos);
       yPos += 6;
       
       if (exchangeRate && totalInNIS !== undefined) {
@@ -196,8 +193,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
         doc.text(`Exchange Rate:`, 120, yPos);
         doc.text(String(exchangeRate), 155, yPos);
         yPos += 6;
-        doc.text(`Total NIS:`, 120, yPos);
-        doc.text(formatCurrency(totalInNIS, 'NIS'), 155, yPos);
+  doc.text(`Total NIS:`, 120, yPos);
+  doc.text(formatCurrencyForPdf(totalInNIS, 'NIS'), 155, yPos);
         yPos += 6;
       }
       
@@ -214,8 +211,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(57, 255, 20);
-    doc.text('GRAND TOTAL:', 120, yPos);
-    doc.text(formatCurrency(report.grandTotalNIS, 'NIS'), 155, yPos);
+  doc.text('GRAND TOTAL:', 120, yPos);
+  doc.text(formatCurrencyForPdf(report.grandTotalNIS, 'NIS'), 155, yPos);
     
     // Status
     yPos += 15;
@@ -241,22 +238,6 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     }
     return options;
   }, [t.months]);
-  
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      draft: 'bg-yellow-500/20 text-yellow-400',
-      submitted: 'bg-blue-500/20 text-blue-400',
-      approved: 'bg-green-500/20 text-green-400',
-      rejected: 'bg-red-500/20 text-red-400',
-    };
-    
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.draft}`}>
-        {t[status as keyof typeof t] || status}
-      </span>
-    );
-  };
   
   if (isLoading) {
     return (
@@ -381,30 +362,10 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {getStatusBadge(report.status)}
-                          
-                          {/* Action buttons */}
-                          {report.status === 'submitted' && (
-                            <>
-                              <button
-                                onClick={() => handleStatusUpdate(report.id, 'approved')}
-                                className="px-3 py-1 text-sm bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-                              >
-                                {t.approveReport}
-                              </button>
-                              <button
-                                onClick={() => handleStatusUpdate(report.id, 'rejected')}
-                                className="px-3 py-1 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
-                              >
-                                {t.rejectReport}
-                              </button>
-                            </>
-                          )}
-                          
                           {/* PDF download */}
                           <button
                             onClick={() => generatePDF(report)}
-                            className="px-3 py-1 text-sm bg-[#39FF14]/20 text-[#39FF14] rounded-lg hover:bg-[#39FF14]/30 transition-colors flex items-center gap-1"
+                            className="px-5 py-2.5 min-h-[44px] text-sm bg-[#39FF14] text-[#0D0D0D] rounded-lg font-semibold hover:bg-[var(--f22-green)] transition-colors flex items-center gap-2 shadow-md shadow-[#39FF14]/30"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

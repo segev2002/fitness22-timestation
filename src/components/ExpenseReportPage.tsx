@@ -8,17 +8,6 @@ interface ExpenseReportPageProps {
   user: User;
 }
 
-// Logo component for the header
-const FitnessLogo = () => (
-  <div className="flex items-center gap-2">
-    <span className="text-2xl font-bold">
-      <span className="text-[#39FF14]">=</span>
-      <span className="text-[var(--f22-text)]">Fitness</span>
-      <span className="text-[#39FF14]">22</span>
-    </span>
-  </div>
-);
-
 // Currency symbols
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
   NIS: '₪',
@@ -74,7 +63,7 @@ const ExpenseItemRow = ({
   };
 
   return (
-    <div className="bg-[var(--f22-surface-light)] rounded-xl p-4 mb-4 border border-[var(--f22-border)]">
+    <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 mb-4 border border-[var(--f22-border)]">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
         {/* Quantity */}
         <div className="md:col-span-1">
@@ -82,7 +71,7 @@ const ExpenseItemRow = ({
           <select
             value={item.quantity}
             onChange={(e) => onUpdate({ quantity: parseInt(e.target.value) })}
-            className="w-full px-3 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-3 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -91,22 +80,22 @@ const ExpenseItemRow = ({
         </div>
         
         {/* Description */}
-        <div className="md:col-span-4">
+        <div className="md:col-span-3">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.description}</label>
           <input
             type="text"
             value={localDescription}
             onChange={handleDescriptionChange}
             placeholder={t.enterDescription}
-            className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
           />
         </div>
         
-        {/* Unit Price */}
+        {/* Unit Price - currency symbol outside input */}
         <div className="md:col-span-2">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.unitPrice}</label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--f22-text-muted)]">
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--f22-text-muted)] text-sm font-medium">
               {CURRENCY_SYMBOLS[currency]}
             </span>
             <input
@@ -116,7 +105,7 @@ const ExpenseItemRow = ({
               onChange={handlePriceChange}
               onBlur={handlePriceBlur}
               placeholder="0.00"
-              className="w-full pl-8 pr-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+              className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
             />
           </div>
         </div>
@@ -124,13 +113,13 @@ const ExpenseItemRow = ({
         {/* Line Total */}
         <div className="md:col-span-2">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.lineTotal}</label>
-          <div className="px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] font-semibold text-sm">
+          <div className="px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-semibold text-sm">
             {CURRENCY_SYMBOLS[currency]}{item.lineTotal.toFixed(2)}
           </div>
         </div>
         
-        {/* Invoice Upload */}
-        <div className="md:col-span-2">
+        {/* Invoice Upload - Bigger and centered */}
+        <div className="md:col-span-3">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.uploadInvoice}</label>
           <input
             type="file"
@@ -143,19 +132,19 @@ const ExpenseItemRow = ({
             className="hidden"
           />
           {item.invoiceBase64 || item.invoiceUrl ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-center">
               <button
                 onClick={() => {
                   const url = item.invoiceBase64 || item.invoiceUrl;
                   if (url) window.open(url, '_blank');
                 }}
-                className="flex-1 px-3 py-3 text-sm bg-[#39FF14]/20 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/30 transition-colors font-medium"
+                className="flex-1 px-4 py-3 text-sm bg-[#39FF14]/20 text-[#39FF14] rounded-lg hover:bg-[#39FF14]/30 transition-colors font-medium"
               >
                 👁 {t.viewInvoice}
               </button>
               <button
                 onClick={() => onUpdate({ invoiceBase64: undefined, invoiceUrl: undefined })}
-                className="px-3 py-3 text-sm bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition-colors"
+                className="px-4 py-3 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
               >
                 ✕
               </button>
@@ -163,9 +152,9 @@ const ExpenseItemRow = ({
           ) : (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full px-4 py-3 text-sm bg-blue-500/20 text-blue-400 border-2 border-dashed border-blue-500/40 rounded-xl hover:bg-blue-500/30 hover:border-blue-500 transition-colors font-medium flex items-center justify-center gap-2"
+              className="w-full px-6 py-4 text-base bg-blue-500/20 text-blue-400 border-2 border-dashed border-blue-500/40 rounded-lg hover:bg-blue-500/30 hover:border-blue-500 transition-colors font-medium flex items-center justify-center gap-3"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               📎 {t.uploadInvoice}
@@ -177,7 +166,7 @@ const ExpenseItemRow = ({
         <div className="md:col-span-1 flex justify-end">
           <button
             onClick={onRemove}
-            className="p-3 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors"
+            className="p-3 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
             title={t.removeExpense}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -436,7 +425,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   }) => (
     <div className="mb-10">
       <h3 className="text-xl font-bold mb-6 text-[var(--f22-text)] flex items-center gap-3">
-        <span className="w-10 h-10 rounded-xl bg-[#39FF14]/20 flex items-center justify-center text-[#39FF14] text-lg">
+        <span className="w-10 h-10 rounded-lg bg-[#39FF14]/20 flex items-center justify-center text-[#39FF14] text-lg">
           {CURRENCY_SYMBOLS[currency]}
         </span>
         {title}
@@ -445,10 +434,10 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
       {/* Header row - desktop only */}
       <div className="hidden md:grid grid-cols-12 gap-4 mb-4 text-sm font-medium text-[var(--f22-text-muted)] px-4">
         <div className="col-span-1">{t.quantity}</div>
-        <div className="col-span-4">{t.description}</div>
+        <div className="col-span-3">{t.description}</div>
         <div className="col-span-2">{t.unitPrice}</div>
         <div className="col-span-2">{t.lineTotal}</div>
-        <div className="col-span-2">{t.uploadInvoice}</div>
+        <div className="col-span-3 text-center">{t.uploadInvoice}</div>
         <div className="col-span-1"></div>
       </div>
       
@@ -467,7 +456,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
       {/* Add expense button */}
       <button
         onClick={() => addExpenseItem(currency)}
-        className="flex items-center gap-3 px-6 py-4 mt-4 text-base text-[#39FF14] bg-[#39FF14]/10 border-2 border-dashed border-[#39FF14]/40 rounded-xl hover:bg-[#39FF14]/20 hover:border-[#39FF14] transition-all w-full justify-center font-medium"
+        className="flex items-center gap-3 px-6 py-4 mt-4 text-base text-[#39FF14] bg-[#39FF14]/10 border-2 border-dashed border-[#39FF14]/40 rounded-lg hover:bg-[#39FF14]/20 hover:border-[#39FF14] transition-all w-full justify-center font-medium"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -493,7 +482,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 inputMode="decimal"
                 value={exchangeRate}
                 onChange={(e) => onExchangeRateChange(parseFloat(e.target.value) || 0)}
-                className="w-28 px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] text-right focus:outline-none focus:border-[#39FF14]"
+                className="w-28 px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-right focus:outline-none focus:border-[#39FF14]"
               />
             </div>
             <div className="flex justify-end items-center gap-6">
@@ -518,24 +507,22 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   
   return (
     <div className={`min-h-screen bg-[var(--f22-bg)] ${isRTL ? 'rtl' : 'ltr'}`}>
-      <div className="w-full px-4 sm:px-6 md:px-8 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="w-full h-full px-4 sm:px-6 md:px-8 py-8">
+        <div className="w-full space-y-8">
           
           {/* Header Card */}
-          <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-              <div className="flex items-center gap-4">
-                <FitnessLogo />
-                <h1 className="text-2xl font-light text-[var(--f22-text-muted)]">{t.expenseReport}</h1>
-              </div>
+          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+            {/* Title centered */}
+            <h1 className="text-3xl font-bold text-[var(--f22-text)] text-center mb-8">{t.expenseReport}</h1>
               
-              {/* Month selector */}
+            {/* Month selector - right aligned */}
+            <div className="flex justify-end mb-8">
               <div className="flex items-center gap-4">
                 <label className="text-[var(--f22-text-muted)]">{t.selectMonth}:</label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-5 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base"
+                  className="px-5 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base"
                 >
                   {monthOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -561,19 +548,6 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                   <span className="text-[var(--f22-text-muted)] w-36">{t.date}:</span>
                   <span className="font-semibold text-[var(--f22-text)] text-lg">{getCurrentDate()}</span>
                 </div>
-                {report?.status && (
-                  <div className="flex items-center gap-4">
-                    <span className="text-[var(--f22-text-muted)] w-36">Status:</span>
-                    <span className={`px-4 py-2 rounded-xl text-sm font-medium ${
-                      report.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                      report.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
-                      report.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                      'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {t[report.status]}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
             
@@ -585,7 +559,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                   type="text"
                   value={checkedBy}
                   onChange={(e) => setCheckedBy(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>
@@ -595,7 +569,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                   type="text"
                   value={approvedBy}
                   onChange={(e) => setApprovedBy(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>
@@ -603,7 +577,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           </div>
           
           {/* Expense sections */}
-          <div className="bg-[var(--f22-surface)] rounded-xl shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
             {/* NIS Expenses */}
             <ExpenseSection
               currency="NIS"
@@ -649,7 +623,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           
           {/* Save message */}
           {saveMessage && (
-            <div className={`p-5 rounded-xl ${
+            <div className={`p-5 rounded-lg ${
               saveMessage.type === 'success' 
                 ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                 : 'bg-red-500/20 text-red-400 border border-red-500/30'
@@ -658,19 +632,12 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             </div>
           )}
           
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-4 justify-end pb-8">
-            <button
-              onClick={() => handleSave(false)}
-              disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-              className="px-8 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] font-medium hover:border-[#39FF14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-            >
-              {isSaving ? '...' : t.saveExpenseReport}
-            </button>
+          {/* Action button - Submit only */}
+          <div className="flex justify-end pb-8">
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-              className="px-8 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-xl font-bold hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
+              className="px-10 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
             >
               {isSaving ? '...' : t.submitExpenseReport}
             </button>

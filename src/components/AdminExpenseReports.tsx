@@ -123,15 +123,30 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
       maximumFractionDigits: 2,
     }).format(value);
     const formatCurrencyForPdf = (value: number, currency: Currency) => `${currency} ${formatNumber(value)}`;
+    const escapeHtml = (value: string) => value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const hasHebrew = (value: string) => /[\u0590-\u05FF]/.test(value);
+
     const buildRows = (items: ExpenseItem[], currency: Currency) => items
-      .map(item => `
-        <tr>
-          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
-          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
-          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.unitPrice, currency)}</td>
-          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.lineTotal, currency)}</td>
-        </tr>
-      `).join('');
+      .map(item => {
+        const description = escapeHtml(item.description);
+        const descriptionCell = hasHebrew(item.description)
+          ? `<span dir="rtl" style="display:inline-block; unicode-bidi: plaintext;">${description}</span>`
+          : description;
+        return `
+          <tr>
+            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${descriptionCell}</td>
+            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.unitPrice, currency)}</td>
+            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.lineTotal, currency)}</td>
+          </tr>
+        `;
+      }).join('');
 
     const buildSection = (title: string, items: ExpenseItem[], total: number, currency: Currency, exchangeRate?: number, totalInNIS?: number) => {
       if (items.length === 0 && total === 0) return '';
@@ -170,7 +185,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     };
 
     const container = document.createElement('div');
-    container.style.fontFamily = 'Arial, sans-serif';
+  container.style.fontFamily = 'Rubik, "Noto Sans Hebrew", "Arial", "Segoe UI", "Tahoma", sans-serif';
     container.style.color = '#111827';
     container.style.width = '520px';
     container.innerHTML = `

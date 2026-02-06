@@ -74,7 +74,7 @@ const ExpenseItemRow = ({
           <select
             value={item.quantity}
             onChange={(e) => onUpdate({ quantity: parseInt(e.target.value) })}
-            className="w-full px-3 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-3 py-5 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-lg focus:outline-none focus:border-[#39FF14]"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -91,7 +91,7 @@ const ExpenseItemRow = ({
             onChange={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
             placeholder={t.enterDescription}
-            className="w-full px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-4 py-5 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-lg focus:outline-none focus:border-[#39FF14]"
           />
         </div>
         
@@ -109,7 +109,7 @@ const ExpenseItemRow = ({
               onChange={handlePriceChange}
               onBlur={handlePriceBlur}
               placeholder="0.00"
-              className="w-full px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
+              className="w-full px-4 py-5 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-lg focus:outline-none focus:border-[#39FF14]"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ const ExpenseItemRow = ({
         {/* Line Total */}
         <div className="md:col-span-2">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.lineTotal}</label>
-          <div className="px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-semibold text-base">
+          <div className="px-4 py-5 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-semibold text-lg">
             {CURRENCY_SYMBOLS[currency]}{item.lineTotal.toFixed(2)}
           </div>
         </div>

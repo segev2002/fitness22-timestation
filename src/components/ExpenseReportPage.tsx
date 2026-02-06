@@ -192,6 +192,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [selectedDay, setSelectedDay] = useState(() => new Date().getDate());
   
   // Report data
   const [report, setReport] = useState<ExpenseReport | null>(null);
@@ -213,18 +214,32 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   const [approvedBy, setApprovedBy] = useState('Benny Shaviv');
   
   // Get month display string
-  const getExpensePeriod = (monthStr: string) => {
+  const getExpensePeriod = (monthStr: string, day: number) => {
     const [year, month] = monthStr.split('-').map(Number);
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[month - 1]}, ${year}`;
+    return `${monthNames[month - 1]} ${day}, ${year}`;
   };
+
+  const selectedDateKey = useMemo(() => {
+    const day = String(selectedDay).padStart(2, '0');
+    return `${selectedMonth}-${day}`;
+  }, [selectedMonth, selectedDay]);
+
+  const daysInSelectedMonth = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    return new Date(year, month, 0).getDate();
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    setSelectedDay((prev) => Math.min(prev, daysInSelectedMonth));
+  }, [daysInSelectedMonth]);
   
   // Load expense report for selected month
   useEffect(() => {
     const loadReport = async () => {
       setIsLoading(true);
       try {
-        const existingReport = await supabaseExpenses.getForUserMonth(user.id, selectedMonth);
+  const existingReport = await supabaseExpenses.getForUserMonth(user.id, selectedDateKey);
         
         if (existingReport) {
           setReport(existingReport);
@@ -251,7 +266,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     };
     
     loadReport();
-  }, [user.id, selectedMonth]);
+  }, [user.id, selectedDateKey]);
   
   // Calculate totals
   const totals = useMemo(() => {
@@ -335,8 +350,8 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
         id: reportId,
         userId: user.id,
         userName: user.name,
-        month: selectedMonth,
-        expensePeriod: getExpensePeriod(selectedMonth),
+  month: selectedDateKey,
+  expensePeriod: getExpensePeriod(selectedMonth, selectedDay),
         checkedBy,
         approvedBy,
         itemsNIS,
@@ -351,7 +366,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
         totalEURInNIS: totals.totalEURInNIS,
         grandTotalNIS: totals.grandTotalNIS,
         status: submit ? 'submitted' : 'draft',
-        createdAt: report?.createdAt || new Date().toISOString(),
+  createdAt: report?.createdAt || new Date(`${selectedDateKey}T12:00:00`).toISOString(),
         updatedAt: new Date().toISOString(),
       };
       
@@ -388,10 +403,10 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   
   // Get current date formatted
   const getCurrentDate = () => {
-    const now = new Date();
+    const [year, month] = selectedMonth.split('-').map(Number);
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                         'July', 'August', 'September', 'October', 'November', 'December'];
-    return `${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+    return `${monthNames[month - 1]} ${selectedDay}, ${year}`;
   };
   
   // Generate month options
@@ -520,8 +535,8 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             <h1 className="text-3xl font-bold text-[var(--f22-text)] text-center mb-8">{t.expenseReport}</h1>
               
             {/* Month selector - right aligned */}
-            <div className="flex justify-end mb-8">
-              <div className="flex items-center gap-4">
+            <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'} mb-8`}>
+              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <label className="text-[var(--f22-text-muted)]">{t.selectMonth}:</label>
                 <select
                   value={selectedMonth}
@@ -530,6 +545,16 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 >
                   {monthOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <label className="text-[var(--f22-text-muted)]">{t.day}:</label>
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(parseInt(e.target.value, 10))}
+                  className="px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base w-24"
+                >
+                  {Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>{day}</option>
                   ))}
                 </select>
               </div>
@@ -544,7 +569,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 </div>
                 <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.expensePeriod}:</span>
-                  <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{getExpensePeriod(selectedMonth)}</span>
+                  <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{getExpensePeriod(selectedMonth, selectedDay)}</span>
                 </div>
               </div>
               <div className="space-y-4">
@@ -557,23 +582,23 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             
             {/* Checked/Approved by */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-[var(--f22-border)]">
-              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.checkedBy}:</span>
+              <div className={`grid items-center gap-4 ${isRTL ? 'grid-cols-[1fr,140px]' : 'grid-cols-[140px,1fr]'}`}>
+                <span className={`text-[var(--f22-text-muted)] ${isRTL ? 'text-right' : 'text-left'}`}>{t.checkedBy}:</span>
                 <input
                   type="text"
                   value={checkedBy}
                   onChange={(e) => setCheckedBy(e.target.value)}
-                  className={`flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
+                  className={`px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>
-              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.approvedBy}:</span>
+              <div className={`grid items-center gap-4 ${isRTL ? 'grid-cols-[1fr,140px]' : 'grid-cols-[140px,1fr]'}`}>
+                <span className={`text-[var(--f22-text-muted)] ${isRTL ? 'text-right' : 'text-left'}`}>{t.approvedBy}:</span>
                 <input
                   type="text"
                   value={approvedBy}
                   onChange={(e) => setApprovedBy(e.target.value)}
-                  className={`flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
+                  className={`px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>

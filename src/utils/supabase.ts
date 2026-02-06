@@ -795,7 +795,7 @@ export const supabaseExpenses = {
     const { data: reportsData, error: reportsError } = await supabase
       .from('expense_reports')
       .select('*')
-      .eq('month', month)
+      .like('month', `${month}%`)
       .order('user_name', { ascending: true });
     
     if (reportsError) {

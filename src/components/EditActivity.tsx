@@ -239,6 +239,24 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
     onShiftsUpdated();
   };
 
+  const handleDayTypeSelect = (value: BulkFormData['dayType']) => {
+    setFormData((prev) => {
+      if (value === 'sickDay') {
+        return {
+          ...prev,
+          dayType: value,
+          checkInTime: '09:00',
+          checkOutTime: '18:00',
+        };
+      }
+
+      return {
+        ...prev,
+        dayType: value,
+      };
+    });
+  };
+
   const handleDeleteSelected = () => {
     if (selectedDays.size === 0) {
       return;
@@ -278,8 +296,8 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 bg-[#39FF14]/20 rounded-lg">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 bg-[#39FF14] rounded-lg">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
@@ -323,7 +341,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
             <span style={{ color: 'var(--f22-text-muted)' }}>{t.selected}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-md" style={{ backgroundColor: isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.3)' }}></div>
+            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-md" style={{ backgroundColor: '#39FF14' }}></div>
             <span style={{ color: 'var(--f22-text-muted)' }}>{t.hasShift}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -507,10 +525,10 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                       <button
                         key={type.value}
                         type="button"
-                        onClick={() => setFormData({ ...formData, dayType: type.value as BulkFormData['dayType'] })}
+                        onClick={() => handleDayTypeSelect(type.value as BulkFormData['dayType'])}
                         className={`px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] rounded-lg border-2 transition-all font-medium text-sm sm:text-base ${
                           formData.dayType === type.value
-                            ? 'border-[#39FF14] bg-[#39FF14]/10 text-[#39FF14]'
+                            ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
                             : ''
                         }`}
                         style={formData.dayType !== type.value ? { borderColor: 'var(--f22-border)', color: 'var(--f22-text)' } : {}}

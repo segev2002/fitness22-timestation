@@ -142,7 +142,7 @@ const ExpenseItemRow = ({
                   const url = item.invoiceBase64 || item.invoiceUrl;
                   if (url) window.open(url, '_blank');
                 }}
-                className="flex-1 px-4 py-3 text-sm bg-[#39FF14]/20 text-[#39FF14] rounded-lg hover:bg-[#39FF14]/30 transition-colors font-medium"
+                className="flex-1 px-4 py-3 text-sm bg-[#39FF14] text-[#0D0D0D] rounded-lg hover:bg-[#39FF14] transition-colors font-medium"
               >
                 👁 {t.viewInvoice}
               </button>
@@ -429,7 +429,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   }) => (
     <div className="mb-10">
       <h3 className="text-xl font-bold mb-6 text-[var(--f22-text)] flex items-center gap-3">
-        <span className="w-10 h-10 rounded-lg bg-[#39FF14]/20 flex items-center justify-center text-[#39FF14] text-lg">
+        <span className="w-10 h-10 rounded-lg bg-[#39FF14] flex items-center justify-center text-[#0D0D0D] text-lg">
           {CURRENCY_SYMBOLS[currency]}
         </span>
         {title}
@@ -460,7 +460,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
       {/* Add expense button */}
       <button
         onClick={() => addExpenseItem(currency)}
-        className="flex items-center gap-3 px-6 py-4 mt-4 text-base text-[#39FF14] bg-[#39FF14]/10 border-2 border-dashed border-[#39FF14]/40 rounded-lg hover:bg-[#39FF14]/20 hover:border-[#39FF14] transition-all w-full justify-center font-medium"
+  className="flex items-center gap-3 px-6 py-4 mt-4 text-base text-[#0D0D0D] bg-[#39FF14] border-2 border-dashed border-[#39FF14] rounded-lg hover:bg-[#39FF14] hover:border-[#39FF14] transition-all w-full justify-center font-medium"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -615,7 +615,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             />
             
             {/* Grand Total */}
-            <div className="mt-10 pt-8 border-t-2 border-[#39FF14]/30">
+            <div className="mt-10 pt-8 border-t-2 border-[#39FF14]">
               <div className="flex justify-end items-center gap-6">
                 <span className="text-2xl font-bold text-[var(--f22-text)]">{t.grandTotal}</span>
                 <span className="text-3xl font-bold text-[#39FF14] min-w-[180px] text-right">
@@ -641,7 +641,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-              className="px-10 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
+              className="px-10 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#39FF14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
             >
               {isSaving ? '...' : t.submitExpenseReport}
             </button>

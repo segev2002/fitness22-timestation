@@ -62,29 +62,29 @@ const ClockTimer = ({ isRunning, startTime }: ClockTimerProps) => {
 
       {/* Elapsed Time (when in shift) */}
       {isRunning && (
-        <div className="bg-[#39FF14]/10 border-2 border-[#39FF14]/30 rounded p-4 mt-4">
+        <div className="bg-[#39FF14] border-2 border-[#39FF14] rounded p-4 mt-4">
           <div className="text-center">
-            <div className="text-[#39FF14] font-medium mb-2">{t.workingFor}:</div>
+            <div className="text-[#0D0D0D] font-medium mb-2">{t.workingFor}:</div>
             <div className="flex items-center justify-center gap-2">
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#39FF14]">
+                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
                   {formatNumber(elapsed.hours)}
                 </div>
-                <div className="text-[#39FF14]/70 text-xs mt-1">{t.hours}</div>
+                <div className="text-[#0D0D0D] text-xs mt-1">{t.hours}</div>
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-[#39FF14]/60">:</div>
+              <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">:</div>
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#39FF14]">
+                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
                   {formatNumber(elapsed.minutes)}
                 </div>
-                <div className="text-[#39FF14]/70 text-xs mt-1">{t.minutes}</div>
+                <div className="text-[#0D0D0D] text-xs mt-1">{t.minutes}</div>
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-[#39FF14]/60">:</div>
+              <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">:</div>
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#39FF14]">
+                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
                   {formatNumber(elapsed.seconds)}
                 </div>
-                <div className="text-[#39FF14]/70 text-xs mt-1">{t.seconds}</div>
+                <div className="text-[#0D0D0D] text-xs mt-1">{t.seconds}</div>
               </div>
             </div>
           </div>

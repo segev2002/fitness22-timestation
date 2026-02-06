@@ -106,16 +106,9 @@ export const deleteShift = (shiftId: string): void => {
   
   // Also delete from Supabase if configured
   if (shouldUseSupabase()) {
-    const existingShift = shifts.find(s => s.id === shiftId);
-    if (existingShift) {
-      supabaseShifts.deleteByDates(existingShift.userId, [existingShift.date]).catch(err => 
-        console.error('Supabase deleteShift failed:', err)
-      );
-    } else {
-      supabaseShifts.delete(shiftId).catch(err => 
-        console.error('Supabase deleteShift failed:', err)
-      );
-    }
+    supabaseShifts.delete(shiftId).catch(err => 
+      console.error('Supabase deleteShift failed:', err)
+    );
   }
 };
 

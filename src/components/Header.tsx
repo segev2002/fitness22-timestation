@@ -11,7 +11,6 @@ interface HeaderProps {
   user: User;
   onLogout: () => void;
 }
-
 const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
   const { t, language, setLanguage } = useLanguage();
   const { toggleTheme, isDark } = useTheme();
@@ -239,7 +238,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
               {!isInstalled && (canInstall || isIOSSafari) && (
                 <button
                   onClick={handleInstallClick}
-                  className="hidden md:flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg font-medium text-sm bg-[#39FF14]/20 text-[#39FF14] hover:bg-[#39FF14]/30 transition-all border border-[#39FF14]/30"
+                    className="hidden md:flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg font-medium text-sm bg-[#39FF14] text-[#0D0D0D] hover:bg-[#39FF14] transition-all border border-[#39FF14]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -395,7 +394,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
                 handleInstallClick();
                 setIsMenuOpen(false);
               }}
-              className="w-full flex items-center gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium bg-[#39FF14]/20 text-[#39FF14] hover:bg-[#39FF14]/30 transition-all border border-[#39FF14]/30"
+                  className="w-full flex items-center gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium bg-[#39FF14] text-[#0D0D0D] hover:bg-[#39FF14] transition-all border border-[#39FF14]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

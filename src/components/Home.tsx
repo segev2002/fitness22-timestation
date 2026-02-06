@@ -152,16 +152,15 @@ const Home = ({ user }: HomeProps) => {
     
     const checkInDate = new Date(activeShift.checkIn);
     const dateStr = checkInDate.toISOString().split('T')[0];
-    
-    // Create check-out time 9 hours after check-in
-    const checkOut = new Date(checkInDate.getTime() + 9 * 60 * 60 * 1000);
+    const checkIn = new Date(`${dateStr}T09:00:00`);
+    const checkOut = new Date(`${dateStr}T18:00:00`);
     
     const newShift: Shift = {
       id: generateId(),
       userId: activeShift.userId,
       userName: activeShift.userName,
       date: dateStr,
-      checkIn: activeShift.checkIn,
+      checkIn: checkIn.toISOString(),
       checkOut: checkOut.toISOString(),
       note: t.sickDayNote,
       duration: 9 * 60, // 9 hours in minutes
@@ -216,7 +215,7 @@ const Home = ({ user }: HomeProps) => {
 
         {/* Status Badge */}
         <div className="flex items-center justify-center mb-8">
-          <div className={`flex items-center gap-3 px-6 py-3 rounded ${isInShift ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)]'}`}>
+          <div className={`flex items-center gap-3 px-6 py-3 rounded ${isInShift ? 'bg-[#39FF14] text-[#0D0D0D]' : 'bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)]'}`}>
             <div className={`w-3 h-3 rounded-full ${isInShift ? 'bg-[#39FF14] animate-pulse' : 'bg-[var(--f22-text-muted)]'}`}></div>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -336,8 +335,8 @@ const Home = ({ user }: HomeProps) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           {/* Total Shifts */}
           <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14]/20 w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
@@ -347,8 +346,8 @@ const Home = ({ user }: HomeProps) => {
 
           {/* Total Hours */}
           <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14]/20 w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -358,8 +357,8 @@ const Home = ({ user }: HomeProps) => {
 
           {/* Average Shift */}
           <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14]/20 w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>

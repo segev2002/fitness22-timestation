@@ -498,7 +498,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     </td>
                     <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
                       {isPrimaryAdmin(u.email) ? (
-                        <span className="bg-[#39FF14]/20 text-[#39FF14] px-2 py-1 rounded text-sm">{t.primaryAdmin}</span>
+                        <span className="bg-[#39FF14] text-[#0D0D0D] px-2 py-1 rounded text-sm">{t.primaryAdmin}</span>
                       ) : isUserAdmin(u) ? (
                         <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-sm">{t.admin}</span>
                       ) : (
@@ -514,7 +514,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                               className={`px-3 py-1 rounded text-sm font-medium ${
                                 u.isAdmin 
                                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                                  : 'bg-[#39FF14]/20 text-[#39FF14] hover:bg-[#39FF14]/30'
+                                  : 'bg-[#39FF14] text-[#0D0D0D] hover:bg-[#39FF14]'
                               }`}
                             >
                               {u.isAdmin ? t.removeAdmin : t.makeAdmin}
@@ -642,11 +642,11 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     className="w-full flex items-center justify-between p-4 bg-[var(--f22-surface-light)] hover:bg-[var(--f22-surface)] transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#39FF14]/20 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[#39FF14] flex items-center justify-center">
                         {shiftUser?.profilePicture ? (
                           <img src={shiftUser.profilePicture} alt={shiftUser.name} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
-                          <span className="text-[#39FF14] font-bold">
+                          <span className="text-[#0D0D0D] font-bold">
                             {(shiftUser?.name || userShifts[0]?.userName || '?').charAt(0).toUpperCase()}
                           </span>
                         )}
@@ -781,8 +781,8 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
                     key={shift.userId}
                     className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg p-4 flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-full bg-[#39FF14]/20 flex items-center justify-center">
-                      <span className="text-[#39FF14] text-lg font-bold">
+                    <div className="w-12 h-12 rounded-full bg-[#39FF14] flex items-center justify-center">
+                      <span className="text-[#0D0D0D] text-lg font-bold">
                         {shift.userName.charAt(0).toUpperCase()}
                       </span>
                     </div>

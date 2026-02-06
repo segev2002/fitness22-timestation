@@ -132,6 +132,24 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
     }
   };
 
+  const handleDayTypeSelect = (value: typeof editForm.dayType) => {
+    setEditForm((prev) => {
+      if (value === 'sickDay') {
+        return {
+          ...prev,
+          dayType: value,
+          checkInTime: '09:00',
+          checkOutTime: '18:00',
+        };
+      }
+
+      return {
+        ...prev,
+        dayType: value,
+      };
+    });
+  };
+
   const sortedShifts = [...shifts].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -141,8 +159,8 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
   return (
     <div className="bg-[var(--f22-surface)] border-t border-[var(--f22-border)] px-4 sm:px-6 md:px-8 py-6 md:py-8">
       <div className="flex items-center gap-3 mb-6 md:mb-8">
-        <div className="p-2 md:p-2.5 bg-[#39FF14]/20 rounded-lg">
-          <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="p-2 md:p-2.5 bg-[#39FF14] rounded-lg">
+          <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -322,10 +340,10 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() => setEditForm({ ...editForm, dayType: type.value as typeof editForm.dayType })}
+                      onClick={() => handleDayTypeSelect(type.value as typeof editForm.dayType)}
                       className={`px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
                         editForm.dayType === type.value
-                          ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
+                          ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
                           : 'border-[var(--f22-border)] hover:border-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)]'
                       }`}
                     >

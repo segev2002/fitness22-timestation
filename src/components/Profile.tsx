@@ -135,7 +135,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
           <div className="bg-[var(--f22-bg)] px-6 md:px-8 py-10 md:py-14 text-center relative">
             {/* Profile Picture */}
             <div className="relative inline-block mb-6">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-[#39FF14]/20 rounded-full flex items-center justify-center mx-auto overflow-hidden border-4 border-[#39FF14]/30">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto overflow-hidden border-4 border-[#39FF14]">
                 {profilePicture ? (
                   <img 
                     src={profilePicture} 
@@ -204,8 +204,8 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
           <div className="p-6 md:p-8 space-y-4 md:space-y-5">
             {/* Member Since */}
             <div className="flex items-center gap-4 p-4 md:p-5 bg-[var(--f22-surface-light)] rounded-lg border border-[var(--f22-border)]">
-              <div className="bg-[#39FF14]/20 p-2.5 md:p-3 rounded-lg flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-[#39FF14] p-2.5 md:p-3 rounded-lg flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -217,8 +217,8 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
 
             {/* Email Info */}
             <div className="flex items-center gap-4 p-4 md:p-5 bg-[var(--f22-surface-light)] rounded-lg border border-[var(--f22-border)]">
-              <div className="bg-[#39FF14]/20 p-2.5 md:p-3 rounded-lg flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-[#39FF14] p-2.5 md:p-3 rounded-lg flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>

@@ -413,7 +413,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
           onClick={hideIOSInstructions}
         >
           <div 
-            className="bg-[var(--f22-surface)] rounded-xl p-6 max-w-sm w-full shadow-2xl border border-[var(--f22-border)]"
+            className="bg-[var(--f22-surface)] rounded-lg p-6 max-w-sm w-full shadow-2xl border border-[var(--f22-border)]"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold text-[var(--f22-text)] mb-4">{t.iosInstallTitle}</h3>

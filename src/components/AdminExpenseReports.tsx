@@ -312,7 +312,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
           {reportsByUser.map(([userId, { user: reportUser, reports: userReports }]) => (
             <div
               key={userId}
-              className="bg-[var(--f22-surface)] rounded-xl border border-[var(--f22-border)] overflow-hidden"
+              className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] overflow-hidden"
             >
               {/* User header - clickable to expand/collapse */}
               <button

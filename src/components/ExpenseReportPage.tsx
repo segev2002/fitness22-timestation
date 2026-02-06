@@ -57,9 +57,11 @@ const ExpenseItemRow = ({
   };
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setLocalDescription(value);
-    onUpdate({ description: value });
+    setLocalDescription(e.target.value);
+  };
+
+  const handleDescriptionBlur = () => {
+    onUpdate({ description: localDescription });
   };
 
   return (
@@ -86,6 +88,7 @@ const ExpenseItemRow = ({
             type="text"
             value={localDescription}
             onChange={handleDescriptionChange}
+            onBlur={handleDescriptionBlur}
             placeholder={t.enterDescription}
             className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
           />

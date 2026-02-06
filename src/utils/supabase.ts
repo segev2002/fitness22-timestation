@@ -828,17 +828,20 @@ export const supabaseExpenses = {
     if (!supabase) return false;
     await ensureSupabaseUserContext();
     
-    // Upsert the report
+    const finalStatus = report.status;
+    
+    // Step 1: Upsert the report as 'draft' first so RLS allows item operations
+    const draftReport = { ...report, status: 'draft' as const };
     const { error: reportError } = await supabase
       .from('expense_reports')
-      .upsert(expenseReportToDb(report), { onConflict: 'user_id,month' });
+      .upsert(expenseReportToDb(draftReport), { onConflict: 'user_id,month' });
     
     if (reportError) {
       console.error('Supabase saveExpenseReport error:', reportError);
       return false;
     }
     
-    // Delete existing items for this report
+    // Step 2: Delete existing items for this report
     const { error: deleteError } = await supabase
       .from('expense_items')
       .delete()
@@ -849,7 +852,7 @@ export const supabaseExpenses = {
       // Continue anyway - might be a new report with no items
     }
     
-    // Insert new items
+    // Step 3: Insert new items (RLS allows because report is still 'draft')
     if (items.length > 0) {
       const dbItems = items.map((item, index) => ({
         ...expenseItemToDb(item),
@@ -862,6 +865,19 @@ export const supabaseExpenses = {
       
       if (itemsError) {
         console.error('Supabase insertExpenseItems error:', itemsError);
+        return false;
+      }
+    }
+    
+    // Step 4: Now update the report to the final status (e.g. 'submitted')
+    if (finalStatus !== 'draft') {
+      const { error: statusError } = await supabase
+        .from('expense_reports')
+        .update({ status: finalStatus })
+        .eq('id', report.id);
+      
+      if (statusError) {
+        console.error('Supabase updateExpenseStatus error:', statusError);
         return false;
       }
     }

@@ -826,6 +826,8 @@ export const supabaseExpenses = {
   // Create or update expense report with items
   async save(report: ExpenseReport, items: ExpenseItem[]): Promise<boolean> {
     if (!supabase) return false;
+    setSupabaseUserId(report.userId);
+    await setSupabaseUserContext(report.userId);
     await ensureSupabaseUserContext();
     
     const finalStatus = report.status;

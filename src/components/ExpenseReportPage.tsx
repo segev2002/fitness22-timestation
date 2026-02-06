@@ -538,42 +538,42 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             {/* Employee and date info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-[var(--f22-border)]">
               <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-[var(--f22-text-muted)] w-36">{t.employee}:</span>
-                  <span className="font-semibold text-[var(--f22-text)] text-lg">{user.name}</span>
+                <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.employee}:</span>
+                  <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{user.name}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-[var(--f22-text-muted)] w-36">{t.expensePeriod}:</span>
-                  <span className="font-semibold text-[var(--f22-text)] text-lg">{getExpensePeriod(selectedMonth)}</span>
+                <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.expensePeriod}:</span>
+                  <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{getExpensePeriod(selectedMonth)}</span>
                 </div>
               </div>
               <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-[var(--f22-text-muted)] w-36">{t.date}:</span>
-                  <span className="font-semibold text-[var(--f22-text)] text-lg">{getCurrentDate()}</span>
+                <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.date}:</span>
+                  <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{getCurrentDate()}</span>
                 </div>
               </div>
             </div>
             
             {/* Checked/Approved by */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-[var(--f22-border)]">
-              <div className="flex items-center gap-4">
-                <span className="text-[var(--f22-text-muted)] w-36">{t.checkedBy}:</span>
+              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.checkedBy}:</span>
                 <input
                   type="text"
                   value={checkedBy}
                   onChange={(e) => setCheckedBy(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  className={`flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[var(--f22-text-muted)] w-36">{t.approvedBy}:</span>
+              <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.approvedBy}:</span>
                 <input
                   type="text"
                   value={approvedBy}
                   onChange={(e) => setApprovedBy(e.target.value)}
-                  className="flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+                  className={`flex-1 px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>

@@ -109,6 +109,8 @@ export const translations = {
     actions: 'פעולות',
     editShift: 'עריכת משמרת',
     confirmDelete: 'האם אתה בטוח שברצונך למחוק משמרת זו?',
+  deleteReport: 'מחק דוח',
+  confirmDeleteExpenseReport: 'האם אתה בטוח שברצונך למחוק דוח הוצאות זה?',
     
     // Calendar
     bulkCalendar: 'מילוי מרובה - לוח שנה',
@@ -363,6 +365,8 @@ export const translations = {
     actions: 'Actions',
     editShift: 'Edit Shift',
     confirmDelete: 'Are you sure you want to delete this shift?',
+  deleteReport: 'Delete Report',
+  confirmDeleteExpenseReport: 'Are you sure you want to delete this expense report?',
     
     // Calendar
     bulkCalendar: 'Bulk Fill - Calendar',

@@ -95,6 +95,19 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
   const collapseAll = () => {
     setExpandedUsers(new Set());
   };
+
+  const handleDeleteReport = async (reportId: string) => {
+    const confirmed = confirm(t.confirmDeleteExpenseReport);
+    if (!confirmed) return;
+    try {
+      const success = await supabaseExpenses.delete(reportId);
+      if (!success) return;
+      const updatedReports = await supabaseExpenses.getAllForMonth(selectedMonth);
+      setReports(updatedReports);
+    } catch (error) {
+      console.error('Error deleting expense report:', error);
+    }
+  };
   
   // Format currency
   const formatCurrency = (value: number, currency: Currency) => {
@@ -102,128 +115,98 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
   };
   
   // Generate PDF for a report
-  const generatePDF = useCallback((report: ExpenseReport) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+  const generatePDF = useCallback(async (report: ExpenseReport) => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const requestDate = report.createdAt ? new Date(report.createdAt) : new Date();
     const formatNumber = (value: number) => new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
-    const formatCurrencyForPdf = (value: number, currency: Currency) => {
-      return `${currency} ${formatNumber(value)}`;
+    const formatCurrencyForPdf = (value: number, currency: Currency) => `${currency} ${formatNumber(value)}`;
+    const buildRows = (items: ExpenseItem[], currency: Currency) => items
+      .map(item => `
+        <tr>
+          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
+          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.unitPrice, currency)}</td>
+          <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.lineTotal, currency)}</td>
+        </tr>
+      `).join('');
+
+    const buildSection = (title: string, items: ExpenseItem[], total: number, currency: Currency, exchangeRate?: number, totalInNIS?: number) => {
+      if (items.length === 0 && total === 0) return '';
+      return `
+        <div style="margin-top: 20px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${title}</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #f3f4f6;">
+                <th style="text-align: left; padding: 6px 4px;">Qty</th>
+                <th style="text-align: left; padding: 6px 4px;">Description</th>
+                <th style="text-align: right; padding: 6px 4px;">Unit Price</th>
+                <th style="text-align: right; padding: 6px 4px;">Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${buildRows(items, currency)}
+            </tbody>
+          </table>
+          <div style="margin-top: 6px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
+            <span style="font-weight: 600;">Total ${currency}:</span>
+            <span style="font-weight: 700;">${formatCurrencyForPdf(total, currency)}</span>
+          </div>
+          ${exchangeRate && totalInNIS !== undefined ? `
+            <div style="margin-top: 4px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
+              <span>Exchange Rate:</span>
+              <span>${exchangeRate}</span>
+            </div>
+            <div style="margin-top: 2px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
+              <span>Total NIS:</span>
+              <span style="font-weight: 700;">${formatCurrencyForPdf(totalInNIS, 'NIS')}</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
     };
-    
-    // Header
-    doc.setFontSize(24);
-    doc.setTextColor(57, 255, 20); // Green color
-    doc.text('Fitness22', 20, yPos);
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(20);
-    doc.text('Expense Report', 70, yPos);
-    
-    yPos += 15;
-    
-    // Employee info
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-  doc.text(`Employee: ${report.userName}`, 20, yPos);
-  doc.text(`Request Date: ${requestDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth - 90, yPos);
-    
-    yPos += 7;
-    doc.text(`Expense Period: ${report.expensePeriod}`, 20, yPos);
-    
-    yPos += 10;
-    if (report.checkedBy) {
-      doc.text(`Checked By: ${report.checkedBy}`, 20, yPos);
-      yPos += 7;
-    }
-    if (report.approvedBy) {
-      doc.text(`Approved By: ${report.approvedBy}`, 20, yPos);
-      yPos += 7;
-    }
-    
-    yPos += 10;
-    
-    // Helper function to draw expense section
-    const drawExpenseSection = (title: string, items: ExpenseItem[], total: number, currency: Currency, exchangeRate?: number, totalInNIS?: number) => {
-      if (items.length === 0 && total === 0) return;
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(title, 20, yPos);
-      yPos += 8;
-      
-      // Table header
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, yPos - 4, pageWidth - 40, 7, 'F');
-      doc.text('Qty', 22, yPos);
-      doc.text('Description', 40, yPos);
-      doc.text('Unit Price', 120, yPos);
-      doc.text('Line Total', 155, yPos);
-      yPos += 8;
-      
-      // Items
-      for (const item of items) {
-        doc.text(String(item.quantity), 22, yPos);
-        doc.text(item.description.substring(0, 40), 40, yPos);
-  doc.text(formatCurrencyForPdf(item.unitPrice, currency), 120, yPos);
-  doc.text(formatCurrencyForPdf(item.lineTotal, currency), 155, yPos);
-        yPos += 6;
-        
-        // Check for page overflow
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-      }
-      
-      // Total
-      yPos += 3;
-      doc.setFont('helvetica', 'bold');
-  doc.text(`Total ${currency}:`, 120, yPos);
-  doc.text(formatCurrencyForPdf(total, currency), 155, yPos);
-      yPos += 6;
-      
-      if (exchangeRate && totalInNIS !== undefined) {
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Exchange Rate:`, 120, yPos);
-        doc.text(String(exchangeRate), 155, yPos);
-        yPos += 6;
-  doc.text(`Total NIS:`, 120, yPos);
-  doc.text(formatCurrencyForPdf(totalInNIS, 'NIS'), 155, yPos);
-        yPos += 6;
-      }
-      
-      yPos += 10;
-    };
-    
-    // Draw sections
-    drawExpenseSection('EXPENSES IN NIS', report.itemsNIS, report.totalNIS, 'NIS');
-    drawExpenseSection('EXPENSES IN USD', report.itemsUSD, report.totalUSD, 'USD', report.exchangeRateUSD, report.totalUSDInNIS);
-    drawExpenseSection('EXPENSES IN EUR', report.itemsEUR, report.totalEUR, 'EUR', report.exchangeRateEUR, report.totalEURInNIS);
-    
-    // Grand Total
-    yPos += 5;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(57, 255, 20);
-  doc.text('GRAND TOTAL:', 120, yPos);
-  doc.text(formatCurrencyForPdf(report.grandTotalNIS, 'NIS'), 155, yPos);
-    
-    // Status
-    yPos += 15;
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont('helvetica', 'normal');
-    const statusText = `Status: ${report.status.toUpperCase()}`;
-    doc.text(statusText, 20, yPos);
-    
-    // Save
-    doc.save(`expense_report_${report.userName.replace(/\s+/g, '_')}_${report.month}.pdf`);
+
+    const container = document.createElement('div');
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.color = '#111827';
+    container.style.width = '520px';
+    container.innerHTML = `
+      <div style="display: flex; align-items: baseline; gap: 16px;">
+        <div style="font-size: 24px; font-weight: 700; color: #39FF14;">Fitness22</div>
+        <div style="font-size: 20px; color: #6b7280;">Expense Report</div>
+      </div>
+      <div style="margin-top: 16px; font-size: 12px;">
+        <div style="display: flex; justify-content: space-between; gap: 12px;">
+          <div>Employee: ${report.userName}</div>
+          <div>Request Date: ${requestDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        </div>
+        <div style="margin-top: 6px;">Expense Period: ${report.expensePeriod}</div>
+        ${report.checkedBy ? `<div style="margin-top: 8px;">Checked By: ${report.checkedBy}</div>` : ''}
+        ${report.approvedBy ? `<div style="margin-top: 4px;">Approved By: ${report.approvedBy}</div>` : ''}
+      </div>
+      ${buildSection('EXPENSES IN NIS', report.itemsNIS, report.totalNIS, 'NIS')}
+      ${buildSection('EXPENSES IN USD', report.itemsUSD, report.totalUSD, 'USD', report.exchangeRateUSD, report.totalUSDInNIS)}
+      ${buildSection('EXPENSES IN EUR', report.itemsEUR, report.totalEUR, 'EUR', report.exchangeRateEUR, report.totalEURInNIS)}
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 16px; font-size: 14px; font-weight: 700; color: #39FF14;">
+        <span>GRAND TOTAL:</span>
+        <span>${formatCurrencyForPdf(report.grandTotalNIS, 'NIS')}</span>
+      </div>
+      <div style="margin-top: 16px; font-size: 11px;">Status: ${report.status.toUpperCase()}</div>
+    `;
+
+    document.body.appendChild(container);
+    await doc.html(container, {
+      x: 24,
+      y: 24,
+      html2canvas: { scale: 1 },
+      callback: () => {
+        doc.save(`expense_report_${report.userName.replace(/\s+/g, '_')}_${report.month}.pdf`);
+        document.body.removeChild(container);
+      },
+    });
   }, []);
   
   // Generate month options
@@ -371,6 +354,15 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             PDF
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReport(report.id)}
+                            className="px-4 py-2.5 min-h-[44px] text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            {t.deleteReport}
                           </button>
                         </div>
                       </div>

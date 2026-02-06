@@ -74,7 +74,7 @@ const ExpenseItemRow = ({
           <select
             value={item.quantity}
             onChange={(e) => onUpdate({ quantity: parseInt(e.target.value) })}
-            className="w-full px-3 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-3 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -91,7 +91,7 @@ const ExpenseItemRow = ({
             onChange={handleDescriptionChange}
             onBlur={handleDescriptionBlur}
             placeholder={t.enterDescription}
-            className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+            className="w-full px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
           />
         </div>
         
@@ -109,7 +109,7 @@ const ExpenseItemRow = ({
               onChange={handlePriceChange}
               onBlur={handlePriceBlur}
               placeholder="0.00"
-              className="w-full px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-sm focus:outline-none focus:border-[#39FF14]"
+              className="w-full px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-base focus:outline-none focus:border-[#39FF14]"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ const ExpenseItemRow = ({
         {/* Line Total */}
         <div className="md:col-span-2">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.lineTotal}</label>
-          <div className="px-4 py-3 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-semibold text-sm">
+          <div className="px-4 py-4 bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] font-semibold text-base">
             {CURRENCY_SYMBOLS[currency]}{item.lineTotal.toFixed(2)}
           </div>
         </div>
@@ -501,7 +501,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 inputMode="decimal"
                 value={exchangeRate}
                 onChange={(e) => onExchangeRateChange(parseFloat(e.target.value) || 0)}
-                className="w-28 px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-right focus:outline-none focus:border-[#39FF14]"
+                className="w-28 px-4 py-4 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] text-right focus:outline-none focus:border-[#39FF14] text-base"
               />
             </div>
             <div className="flex justify-end items-center gap-6">
@@ -541,7 +541,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-5 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base"
+                  className="px-5 py-4 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base"
                 >
                   {monthOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -551,7 +551,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                 <select
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(parseInt(e.target.value, 10))}
-                  className="px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base w-24"
+                  className="px-4 py-4 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base w-24"
                 >
                   {Array.from({ length: daysInSelectedMonth }, (_, i) => i + 1).map((day) => (
                     <option key={day} value={day}>{day}</option>
@@ -588,7 +588,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                   type="text"
                   value={checkedBy}
                   onChange={(e) => setCheckedBy(e.target.value)}
-                  className={`px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
+                  className={`px-4 py-4 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>
@@ -598,7 +598,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
                   type="text"
                   value={approvedBy}
                   onChange={(e) => setApprovedBy(e.target.value)}
-                  className={`px-4 py-3 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] ${isRTL ? 'text-right' : 'text-left'}`}
+                  className={`px-4 py-4 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14] text-base ${isRTL ? 'text-right' : 'text-left'}`}
                   disabled={report?.status !== 'draft' && report?.status !== undefined}
                 />
               </div>

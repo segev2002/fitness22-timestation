@@ -177,16 +177,16 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
 
   return (
     <>
-      <header className="bg-[var(--f22-surface)] shadow-lg border-b border-[var(--f22-border)] sticky top-0 z-50">
-        <div className="w-full px-4 sm:px-6 md:px-8">
-          <div className="flex items-center justify-between h-16 md:h-18">
+      <header className="bg-[var(--f22-surface)]/80 backdrop-blur-xl border-b border-[var(--f22-border-subtle)] sticky top-0 z-50">
+        <div className="w-full px-4 sm:px-6 md:px-10">
+          <div className="flex items-center justify-between h-[64px] md:h-[76px]">
             
             {/* Left: Hamburger Menu (Mobile) */}
             <div className="flex items-center md:hidden">
               <button
                 ref={menuButtonRef}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-lg text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] hover:text-[var(--f22-text)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2.5 rounded-xl text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] hover:text-[var(--f22-text)] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label={t.menu}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
@@ -204,26 +204,26 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
             </div>
 
             {/* Center: Logo/Title */}
-            <div className="flex flex-col sm:flex-row items-center gap-0 sm:gap-4 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-4 flex-shrink-0">
               <img
                 src={isDark ? '/Logo_fitness.png' : '/logo_black.png'}
                 alt="Fitness22"
-                className="h-4 sm:h-7 w-auto shrink-0"
+                className="h-6 sm:h-8 w-auto shrink-0"
               />
-              <span className="hidden sm:block text-[var(--f22-text-muted)] text-2xl font-light">|</span>
-              <h1 className="text-sm sm:text-xl font-bold text-[var(--f22-text)]">{t.appTitle}</h1>
+              <span className="hidden sm:block text-[var(--f22-border)] text-xl">|</span>
+              <h1 className="text-[13px] sm:text-lg font-bold text-[var(--f22-text)] tracking-tight">{t.appTitle}</h1>
             </div>
 
             {/* Desktop Navigation - Hidden on mobile */}
-            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
               {navItems.map((item) => (
                 <button
                   key={item.view}
                   onClick={() => handleNavClick(item.view)}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 min-h-[44px] rounded-lg font-medium transition-all text-sm ${
+                  className={`flex items-center justify-center gap-2.5 px-5 py-2.5 lg:px-7 lg:py-3 min-h-[44px] rounded-xl font-semibold transition-all text-sm tracking-wide ${
                     currentView === item.view
-                      ? 'bg-[#39FF14] text-[#0D0D0D] shadow-md shadow-[#39FF14]/30'
-                      : 'text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] border border-[var(--f22-border)]'
+                      ? 'bg-[#39FF14] text-[#0D0D0D] shadow-[var(--shadow-glow)]'
+                      : 'text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] hover:text-[var(--f22-text)]'
                   }`}
                 >
                   {item.icon}
@@ -238,7 +238,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
               {!isInstalled && (canInstall || isIOSSafari) && (
                 <button
                   onClick={handleInstallClick}
-                    className="hidden md:flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg font-medium text-sm bg-[#39FF14] text-[#0D0D0D] hover:bg-[#39FF14] transition-all border border-[#39FF14]"
+                    className="hidden md:flex items-center gap-2.5 px-5 py-3 min-h-[44px] rounded-xl font-semibold text-sm bg-[#39FF14] text-[#0D0D0D] hover:brightness-110 transition-all shadow-[var(--shadow-glow)]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -250,7 +250,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
               {/* Theme Toggle - Desktop only */}
               <button
                 onClick={toggleTheme}
-                className="hidden md:flex p-2.5 rounded-lg text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] hover:text-[var(--f22-text)] transition-all min-h-[44px] min-w-[44px] items-center justify-center"
+                className="hidden md:flex p-3 rounded-xl text-[var(--f22-text-muted)] hover:bg-[var(--f22-surface-light)] hover:text-[var(--f22-text)] transition-all min-h-[44px] min-w-[44px] items-center justify-center"
                 title={isDark ? t.lightMode : t.darkMode}
                 aria-label={isDark ? t.lightMode : t.darkMode}
               >
@@ -260,7 +260,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
               {/* Language Toggle - Desktop only */}
               <button
                 onClick={toggleLanguage}
-                className="hidden md:flex hover:bg-[var(--f22-surface-light)] p-2.5 rounded-lg transition-all items-center gap-2 min-h-[44px] min-w-[44px] justify-center"
+                className="hidden md:flex hover:bg-[var(--f22-surface-light)] p-3 rounded-xl transition-all items-center gap-2 min-h-[44px] min-w-[44px] justify-center"
                 title={language === 'he' ? 'Switch to English' : 'החלף לעברית'}
               >
                 {language === 'he' ? (
@@ -287,21 +287,21 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
               </button>
 
               {/* User Avatar */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#39FF14] rounded-full flex items-center justify-center text-[#0D0D0D] font-semibold text-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#39FF14] rounded-full flex items-center justify-center text-[#0D0D0D] font-bold text-sm overflow-hidden shadow-[var(--shadow-glow)]">
                   {user.profilePicture ? (
                     <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
                     user.name.charAt(0).toUpperCase()
                   )}
                 </div>
-                <span className="hidden sm:block font-medium text-[var(--f22-text)]">{user.name}</span>
+                <span className="hidden sm:block font-semibold text-sm text-[var(--f22-text)]">{user.name}</span>
               </div>
 
               {/* Logout Button */}
               <button
                 onClick={onLogout}
-                className="text-[var(--f22-text-muted)] hover:bg-red-900/30 hover:text-red-400 p-2 sm:p-2.5 rounded-lg transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="text-[var(--f22-text-muted)] hover:bg-red-500/10 hover:text-red-400 p-3 rounded-xl transition-all min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title={t.logout}
                 aria-label={t.logout}
               >
@@ -329,20 +329,20 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
         role="dialog"
         aria-modal="true"
         aria-label={t.menu}
-        className={`fixed top-16 left-0 right-0 bottom-0 bg-[var(--f22-surface)] z-50 md:hidden transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-[64px] left-0 right-0 bottom-0 bg-[var(--f22-bg)] z-50 md:hidden transform transition-transform duration-300 ease-in-out ${
           isMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <nav className="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-4rem)]">
+        <nav className="p-6 space-y-3 overflow-y-auto max-h-[calc(100vh-64px)]">
           {/* Navigation Items */}
           {navItems.map((item) => (
             <button
               key={item.view}
               onClick={() => handleNavClick(item.view)}
-              className={`w-full flex items-center gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium transition-all text-left ${
+              className={`w-full flex items-center gap-4 px-6 py-4 min-h-[56px] rounded-2xl font-semibold transition-all text-left text-base ${
                 currentView === item.view
-                  ? 'bg-[#39FF14] text-[#0D0D0D] shadow-md shadow-[#39FF14]/30'
-                  : 'text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] border border-[var(--f22-border)]'
+                  ? 'bg-[#39FF14] text-[#0D0D0D] shadow-[var(--shadow-glow)]'
+                  : 'text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] bg-[var(--f22-surface)] border border-[var(--f22-border)]'
               }`}
             >
               {item.icon}
@@ -351,14 +351,14 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
           ))}
 
           {/* Divider */}
-          <div className="border-t border-[var(--f22-border)] my-4" />
+          <div className="border-t border-[var(--f22-border-subtle)] my-4" />
 
           {/* Theme Toggle */}
           <button
             onClick={() => {
               toggleTheme();
             }}
-            className="w-full flex items-center justify-between gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] border border-[var(--f22-border)] transition-all"
+            className="w-full flex items-center justify-between gap-4 px-6 py-4 min-h-[56px] rounded-2xl font-semibold text-base text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] bg-[var(--f22-surface)] border border-[var(--f22-border)] transition-all"
           >
             <div className="flex items-center gap-4">
               {ThemeIcon}
@@ -374,7 +374,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
             onClick={() => {
               toggleLanguage();
             }}
-            className="w-full flex items-center justify-between gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] border border-[var(--f22-border)] transition-all"
+            className="w-full flex items-center justify-between gap-4 px-6 py-4 min-h-[56px] rounded-2xl font-semibold text-base text-[var(--f22-text)] hover:bg-[var(--f22-surface-light)] bg-[var(--f22-surface)] border border-[var(--f22-border)] transition-all"
           >
             <div className="flex items-center gap-4">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,7 +394,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
                 handleInstallClick();
                 setIsMenuOpen(false);
               }}
-                  className="w-full flex items-center gap-4 px-4 py-3 min-h-[48px] rounded-lg font-medium bg-[#39FF14] text-[#0D0D0D] hover:bg-[#39FF14] transition-all border border-[#39FF14]"
+                  className="w-full flex items-center gap-4 px-6 py-4 min-h-[56px] rounded-2xl font-bold text-base bg-[#39FF14] text-[#0D0D0D] hover:brightness-110 transition-all shadow-[var(--shadow-glow)]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -412,10 +412,10 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
           onClick={hideIOSInstructions}
         >
           <div 
-            className="bg-[var(--f22-surface)] rounded-lg p-6 max-w-sm w-full shadow-2xl border border-[var(--f22-border)]"
+            className="bg-[var(--f22-surface)] rounded-2xl p-7 max-w-sm w-full shadow-2xl border border-[var(--f22-border)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-[var(--f22-text)] mb-4">{t.iosInstallTitle}</h3>
+            <h3 className="text-xl font-bold text-[var(--f22-text)] mb-5 tracking-tight">{t.iosInstallTitle}</h3>
             <div className="space-y-4 text-[var(--f22-text)]">
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#39FF14] text-[#0D0D0D] flex items-center justify-center text-sm font-bold">1</span>
@@ -433,7 +433,7 @@ const Header = ({ currentView, onViewChange, user, onLogout }: HeaderProps) => {
             </div>
             <button
               onClick={hideIOSInstructions}
-              className="mt-6 w-full py-3 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-colors min-h-[48px]"
+              className="mt-7 w-full py-3.5 bg-[#39FF14] text-[#0D0D0D] rounded-xl font-bold hover:brightness-110 transition-all min-h-[48px] shadow-[var(--shadow-glow)]"
             >
               {t.close}
             </button>

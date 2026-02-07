@@ -128,14 +128,14 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-200px)] px-4 sm:px-6 md:px-8 py-6">
+    <div className="flex items-center justify-center min-h-[calc(100vh-200px)] px-5 sm:px-8 md:px-12 py-8">
       <div className="w-full max-w-lg">
-        <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] overflow-hidden">
+        <div className="bg-[var(--f22-surface)] rounded-2xl shadow-[var(--shadow-lg)] border border-[var(--f22-border)] overflow-hidden">
           {/* Profile Header */}
-          <div className="bg-[var(--f22-bg)] px-6 md:px-8 py-10 md:py-14 text-center relative">
+          <div className="bg-[var(--f22-bg)] px-7 md:px-10 py-12 md:py-16 text-center relative">
             {/* Profile Picture */}
             <div className="relative inline-block mb-6">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto overflow-hidden border-4 border-[#39FF14]">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto overflow-hidden border-4 border-[#39FF14] shadow-[var(--shadow-glow-strong)]">
                 {profilePicture ? (
                   <img 
                     src={profilePicture} 
@@ -154,7 +154,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                 <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-3">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-[#39FF14] text-[#0D0D0D] p-2.5 rounded-full shadow-lg hover:bg-[var(--f22-green)] transition-all"
+                    className="bg-[#39FF14] text-[#0D0D0D] p-2.5 rounded-full shadow-lg hover:brightness-110 transition-all"
                     title={t.changePhoto}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,13 +187,13 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
             
             {/* Name */}
             {!isEditing ? (
-              <h2 className="text-2xl md:text-3xl font-bold text-[var(--f22-text)] mb-3">{user.name}</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-[var(--f22-text)] mb-3 tracking-tight">{user.name}</h2>
             ) : (
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="text-xl md:text-2xl font-bold text-center bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-lg px-4 py-3 min-h-[48px] focus:outline-none focus:ring-2 focus:ring-[#39FF14] w-full max-w-xs mx-auto block"
+                className="text-xl md:text-2xl font-bold text-center bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-xl px-5 py-3.5 min-h-[52px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 w-full max-w-xs mx-auto block"
                 autoFocus
               />
             )}
@@ -201,46 +201,46 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
           </div>
 
           {/* Profile Info */}
-          <div className="p-6 md:p-8 space-y-4 md:space-y-5">
+          <div className="p-7 md:p-9 space-y-4 md:space-y-5">
             {/* Member Since */}
-            <div className="flex items-center gap-4 p-4 md:p-5 bg-[var(--f22-surface-light)] rounded-lg border border-[var(--f22-border)]">
-              <div className="bg-[#39FF14] p-2.5 md:p-3 rounded-lg flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-4 p-5 md:p-6 bg-[var(--f22-surface-light)] rounded-xl border border-[var(--f22-border)]">
+              <div className="bg-[#39FF14]/10 p-3 md:p-3.5 rounded-xl flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-[var(--f22-text-muted)]">{t.memberSince}</p>
-                <p className="font-semibold text-[var(--f22-text)]">{formatDate(user.createdAt)}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)]">{t.memberSince}</p>
+                <p className="font-bold text-[var(--f22-text)] mt-0.5">{formatDate(user.createdAt)}</p>
               </div>
             </div>
 
             {/* Email Info */}
-            <div className="flex items-center gap-4 p-4 md:p-5 bg-[var(--f22-surface-light)] rounded-lg border border-[var(--f22-border)]">
-              <div className="bg-[#39FF14] p-2.5 md:p-3 rounded-lg flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-4 p-5 md:p-6 bg-[var(--f22-surface-light)] rounded-xl border border-[var(--f22-border)]">
+              <div className="bg-[#39FF14]/10 p-3 md:p-3.5 rounded-xl flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-[var(--f22-text-muted)]">{t.email}</p>
-                <p className="font-semibold text-[var(--f22-text)] truncate">{user.email}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)]">{t.email}</p>
+                <p className="font-bold text-[var(--f22-text)] truncate mt-0.5">{user.email}</p>
               </div>
             </div>
 
             {saveError && (
-              <div className="w-full text-center bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm">
+              <div className="w-full text-center bg-red-500/10 text-red-400 px-5 py-2.5 rounded-xl text-sm font-medium">
                 {saveError}
               </div>
             )}
             {saveSuccess && (
-              <div className="w-full text-center bg-[var(--f22-green)]/20 text-[var(--f22-green)] px-4 py-2 rounded-lg text-sm">
+              <div className="w-full text-center bg-[var(--f22-green)]/10 text-[var(--f22-green)] px-5 py-2.5 rounded-xl text-sm font-medium">
                 {t.profileSaveSuccess}
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-4 md:pt-6">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-4 pt-5 md:pt-6">
               {!isEditing ? (
                 <>
                   <button
@@ -249,7 +249,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                       setSaveError('');
                       setSaveSuccess(false);
                     }}
-                    className="flex items-center justify-center gap-3 bg-[#39FF14] text-[#0D0D0D] px-6 md:px-8 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-all shadow-lg shadow-[#39FF14]/30 transform hover:scale-105"
+                    className="flex items-center justify-center gap-3 bg-[#39FF14] text-[#0D0D0D] px-7 md:px-9 py-3.5 md:py-4 min-h-[48px] rounded-xl font-bold hover:brightness-110 transition-all shadow-[var(--shadow-glow)] transform hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -258,7 +258,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                   </button>
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="flex items-center justify-center gap-3 bg-[var(--f22-surface-light)] text-[var(--f22-text)] px-6 md:px-8 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[var(--f22-border)] transition-all border border-[var(--f22-border)]"
+                    className="flex items-center justify-center gap-3 bg-[var(--f22-surface-light)] text-[var(--f22-text)] px-7 md:px-9 py-3.5 md:py-4 min-h-[48px] rounded-xl font-bold hover:bg-[var(--f22-surface-elevated)] transition-all border border-[var(--f22-border)]"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -270,14 +270,14 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                 <>
                   <button
                     onClick={handleCancel}
-                    className="flex items-center justify-center gap-2 bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)] px-6 py-3 md:py-4 min-h-[48px] rounded-lg font-semibold hover:bg-[var(--f22-border)] transition-all border border-[var(--f22-border)]"
+                    className="flex items-center justify-center gap-2 bg-[var(--f22-surface-light)] text-[var(--f22-text-secondary)] px-6 py-3.5 md:py-4 min-h-[48px] rounded-xl font-semibold hover:bg-[var(--f22-surface-elevated)] transition-all border border-[var(--f22-border)]"
                   >
                     {t.cancel}
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSaving || !name.trim()}
-                    className="flex items-center justify-center gap-2 bg-[#39FF14] text-[#0D0D0D] px-6 py-3 md:py-4 min-h-[48px] rounded-lg font-bold hover:bg-[var(--f22-green)] transition-all shadow-lg shadow-[#39FF14]/30 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 bg-[#39FF14] text-[#0D0D0D] px-6 py-3.5 md:py-4 min-h-[48px] rounded-xl font-bold hover:brightness-110 transition-all shadow-[var(--shadow-glow)] disabled:opacity-50"
                   >
                     {isSaving ? (
                       <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -297,59 +297,59 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
 
             {/* Password Change Modal */}
             {showPasswordChange && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-[var(--f22-surface)] rounded-lg p-6 w-full max-w-md border border-[var(--f22-border)]">
-                  <h4 className="text-lg font-bold text-[var(--f22-text)] mb-4">{t.changePassword}</h4>
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-[var(--f22-surface)] rounded-2xl p-7 w-full max-w-md border border-[var(--f22-border)] shadow-2xl">
+                  <h4 className="text-lg font-bold text-[var(--f22-text)] mb-5 tracking-tight">{t.changePassword}</h4>
                   
                   {passwordError && (
-                    <div className="bg-red-500/20 text-red-500 px-4 py-2 rounded-lg mb-4 text-sm">
+                    <div className="bg-red-500/10 text-red-500 px-5 py-2.5 rounded-xl mb-5 text-sm font-medium">
                       {passwordError}
                     </div>
                   )}
                   
                   {passwordSuccess && (
-                    <div className="bg-[var(--f22-green)]/20 text-[var(--f22-green)] px-4 py-2 rounded-lg mb-4 text-sm">
+                    <div className="bg-[var(--f22-green)]/10 text-[var(--f22-green)] px-5 py-2.5 rounded-xl mb-5 text-sm font-medium">
                       {t.passwordChanged}
                     </div>
                   )}
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm text-[var(--f22-text-muted)] mb-1">{t.currentPassword}</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">{t.currentPassword}</label>
                       <input
                         type="password"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-xl px-5 py-3.5 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] text-[15px]"
                         placeholder={t.enterPassword}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--f22-text-muted)] mb-1">{t.newPassword}</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">{t.newPassword}</label>
                       <input
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-xl px-5 py-3.5 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] text-[15px]"
                         placeholder={t.enterPassword}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[var(--f22-text-muted)] mb-1">{t.confirmPassword}</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">{t.confirmPassword}</label>
                       <input
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-lg px-4 py-3 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14]"
+                        className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded-xl px-5 py-3.5 min-h-[48px] transition-all focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] text-[15px]"
                         placeholder={t.reenterPassword}
                       />
                     </div>
                   </div>
                   
-                  <div className="flex gap-3 mt-6">
+                  <div className="flex gap-3 mt-7">
                     <button
                       onClick={handlePasswordChange}
-                      className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-lg font-medium hover:bg-[var(--f22-green)]"
+                      className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3.5 rounded-xl font-bold hover:brightness-110 transition-all shadow-[var(--shadow-glow)]"
                     >
                       {t.save}
                     </button>
@@ -361,7 +361,7 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
                         setNewPassword('');
                         setConfirmPassword('');
                       }}
-                      className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text)] py-3 rounded-lg font-medium border border-[var(--f22-border)]"
+                      className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text)] py-3.5 rounded-xl font-semibold border border-[var(--f22-border)] hover:bg-[var(--f22-surface-elevated)] transition-all"
                     >
                       {t.cancel}
                     </button>

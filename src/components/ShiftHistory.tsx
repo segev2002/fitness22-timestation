@@ -157,29 +157,29 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
   const textAlign = isRTL ? 'text-right' : 'text-left';
 
   return (
-    <div className="bg-[var(--f22-surface)] border-t border-[var(--f22-border)] px-4 sm:px-6 md:px-8 py-6 md:py-8 pb-10 sm:pb-8">
-      <div className="flex items-center gap-3 mb-6 md:mb-8">
-        <div className="p-2 md:p-2.5 bg-[#39FF14] rounded-lg">
-          <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="bg-[var(--f22-surface)] border-t border-[var(--f22-border-subtle)] px-5 sm:px-8 md:px-12 py-10 md:py-12 pb-12 sm:pb-10">
+      <div className="flex items-center gap-3 mb-8 md:mb-10">
+        <div className="p-2.5 md:p-3 bg-[#39FF14]/10 rounded-xl">
+          <svg className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h2 className="text-lg md:text-xl font-bold text-[var(--f22-text)]">{t.shiftHistory}</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-[var(--f22-text)] tracking-tight">{t.shiftHistory}</h2>
       </div>
 
       {sortedShifts.length === 0 ? (
-        <div className="text-center py-8 md:py-12">
-          <div className="w-14 h-14 md:w-16 md:h-16 bg-[var(--f22-surface-light)] rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-10 md:py-14">
+          <div className="w-16 h-16 md:w-18 md:h-18 bg-[var(--f22-surface-light)] rounded-2xl flex items-center justify-center mx-auto mb-5">
             <svg className="w-7 h-7 md:w-8 md:h-8 text-[var(--f22-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <p className="text-[var(--f22-text-muted)] text-base md:text-lg">{t.noShiftsToShow}</p>
-          <p className="text-[var(--f22-text-muted)] opacity-70 text-sm mt-1">{t.shiftsWillAppear}</p>
+          <p className="text-[var(--f22-text-muted)] text-base md:text-lg font-medium">{t.noShiftsToShow}</p>
+          <p className="text-[var(--f22-text-muted)] opacity-60 text-sm mt-2">{t.shiftsWillAppear}</p>
         </div>
       ) : (
         <>{/* Mobile Card Layout */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-3.5">
           {sortedShifts.map((shift) => {
             const date = new Date(shift.date);
             const checkInTime = formatTime(shift.checkIn);
@@ -191,17 +191,17 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
             }
 
             return (
-              <div key={shift.id} className="bg-[var(--f22-surface-light)] rounded-xl border-2 border-[var(--f22-border)] p-4 space-y-3">
+              <div key={shift.id} className="bg-[var(--f22-surface-light)] rounded-2xl border border-[var(--f22-border)] p-5 space-y-3.5 hover:border-[var(--f22-green)]/15 transition-colors">
                 {/* Top row: Date + Actions */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[var(--f22-text)] font-bold text-base">{formatDate(date)}</div>
-                    <div className="text-[var(--f22-text-muted)] text-xs">{getDayName(date)}</div>
+                    <div className="text-[var(--f22-text)] font-bold text-[15px]">{formatDate(date)}</div>
+                    <div className="text-[var(--f22-text-muted)] text-xs font-medium">{getDayName(date)}</div>
                   </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleEdit(shift)}
-                      className="p-2.5 text-amber-400 hover:bg-amber-500/20 rounded-lg transition-all"
+                      className="p-2.5 text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
                       title={t.edit}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,7 +210,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                     </button>
                     <button
                       onClick={() => handleDelete(shift.id)}
-                      className="p-2.5 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                      className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                       title={t.delete}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,38 +223,38 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                 {/* Employee */}
                 <div className="flex items-center gap-2">
                   <span className="text-[var(--f22-text-muted)] text-xs font-medium w-16">{t.employee}</span>
-                  <span className="bg-[#39FF14] text-[#0D0D0D] px-3 py-1.5 rounded-lg text-sm font-semibold">
+                  <span className="bg-[#39FF14] text-[#0D0D0D] px-5 py-2 rounded-lg text-sm font-bold">
                     {shift.userName}
                   </span>
                 </div>
 
                 {/* Check-in / Check-out row */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] p-3 text-center">
-                    <div className="text-[var(--f22-text-muted)] text-xs mb-1">{t.checkInTime}</div>
-                    <span className="text-[#0D0D0D] font-bold bg-[#39FF14] px-3 py-1.5 rounded-lg text-sm inline-block">{checkInTime}</span>
+                  <div className="bg-[var(--f22-surface)] rounded-xl border border-[var(--f22-border)] p-3.5 text-center">
+                    <div className="text-[var(--f22-text-muted)] text-xs font-medium mb-1.5">{t.checkInTime}</div>
+                    <span className="text-[#0D0D0D] font-bold bg-[#39FF14] px-5 py-2 rounded-lg text-sm inline-block">{checkInTime}</span>
                   </div>
-                  <div className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] p-3 text-center">
-                    <div className="text-[var(--f22-text-muted)] text-xs mb-1">{t.checkOutTime}</div>
-                    <span className="text-red-400 font-bold bg-red-500/10 px-3 py-1.5 rounded-lg text-sm inline-block">{checkOutTime}</span>
+                  <div className="bg-[var(--f22-surface)] rounded-xl border border-[var(--f22-border)] p-3.5 text-center">
+                    <div className="text-[var(--f22-text-muted)] text-xs font-medium mb-1.5">{t.checkOutTime}</div>
+                    <span className="text-red-400 font-bold bg-red-500/10 px-5 py-2 rounded-lg text-sm inline-block">{checkOutTime}</span>
                   </div>
                 </div>
 
                 {/* Duration + Break row */}
-                <div className="flex items-center justify-between border-t border-[var(--f22-border)] pt-3">
+                <div className="flex items-center justify-between border-t border-[var(--f22-border-subtle)] pt-3.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[var(--f22-text-muted)] text-xs">{t.duration}:</span>
-                    <span className="text-[var(--f22-text)] font-semibold text-sm">{formatDuration(shift.duration)}</span>
+                    <span className="text-[var(--f22-text-muted)] text-xs font-medium">{t.duration}:</span>
+                    <span className="text-[var(--f22-text)] font-bold text-sm">{formatDuration(shift.duration)}</span>
                   </div>
                   {breakMins > 0 && (
-                    <span className="bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-lg text-xs font-medium">{t.breakMinutes}: {breakMins}m</span>
+                    <span className="bg-orange-500/10 text-orange-400 px-4 py-1.5 rounded-lg text-xs font-semibold">{t.breakMinutes}: {breakMins}m</span>
                   )}
                 </div>
 
                 {/* Note */}
                 {displayNote && (
-                  <div className="border-t border-[var(--f22-border)] pt-3">
-                    <span className="text-[var(--f22-text-muted)] text-xs">{displayNote}</span>
+                  <div className="border-t border-[var(--f22-border-subtle)] pt-3.5">
+                    <span className="text-[var(--f22-text-muted)] text-xs font-medium">{displayNote}</span>
                   </div>
                 )}
               </div>
@@ -267,14 +267,14 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="bg-[var(--f22-surface-light)] border-b border-[var(--f22-border)]">
-                <th className={`${textAlign} py-3 md:py-4 px-4 md:px-6 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.date}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.employee}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.checkInTime}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.checkOutTime}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.breakMinutes}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.duration}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-semibold text-sm`}>{t.note}</th>
-                <th className={`${textAlign} py-3 md:py-4 px-4 md:px-6 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-sm`}>{t.actions}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-5 md:px-6 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.date}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.employee}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.checkInTime}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.checkOutTime}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.breakMinutes}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.duration}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] font-semibold text-xs uppercase tracking-wider`}>{t.note}</th>
+                <th className={`${textAlign} py-4 md:py-5 px-5 md:px-6 text-[var(--f22-text-muted)] font-semibold whitespace-nowrap text-xs uppercase tracking-wider`}>{t.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -289,34 +289,34 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                 }
 
                 return (
-                  <tr key={shift.id} className={`border-b border-[var(--f22-border)] hover:bg-[var(--f22-surface-light)] transition-colors ${index % 2 === 0 ? 'bg-[var(--f22-surface)]' : 'bg-[var(--f22-surface-light)]/50'}`}>
-                    <td className="py-3 md:py-4 px-4 md:px-6 whitespace-nowrap">
-                      <div className="text-[var(--f22-text)] font-medium text-sm">{formatDate(date)}</div>
-                      <div className="text-[var(--f22-text-muted)] text-xs">{getDayName(date)}</div>
+                  <tr key={shift.id} className={`border-b border-[var(--f22-border-subtle)] hover:bg-[var(--f22-surface-light)] transition-colors ${index % 2 === 0 ? 'bg-[var(--f22-surface)]' : 'bg-[var(--f22-surface-light)]/30'}`}>
+                    <td className="py-4 md:py-5 px-5 md:px-6 whitespace-nowrap">
+                      <div className="text-[var(--f22-text)] font-semibold text-sm">{formatDate(date)}</div>
+                      <div className="text-[var(--f22-text-muted)] text-xs mt-0.5">{getDayName(date)}</div>
                     </td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
-                      <span className="bg-[#39FF14] text-[#0D0D0D] px-3 py-1.5 rounded text-xs md:text-sm font-medium">
+                    <td className="py-4 md:py-5 px-4 md:px-5 whitespace-nowrap">
+                      <span className="bg-[#39FF14] text-[#0D0D0D] px-5 py-2 rounded-lg text-xs md:text-sm font-bold">
                         {shift.userName}
                       </span>
                     </td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
-                      <span className="text-[#0D0D0D] font-semibold bg-[#39FF14] px-3 py-1.5 rounded text-sm">{checkInTime}</span>
+                    <td className="py-4 md:py-5 px-4 md:px-5 whitespace-nowrap">
+                      <span className="text-[#0D0D0D] font-bold bg-[#39FF14] px-5 py-2 rounded-lg text-sm">{checkInTime}</span>
                     </td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 whitespace-nowrap">
-                      <span className="text-red-400 font-semibold bg-red-500/10 px-3 py-1.5 rounded text-sm">{checkOutTime}</span>
+                    <td className="py-4 md:py-5 px-4 md:px-5 whitespace-nowrap">
+                      <span className="text-red-400 font-bold bg-red-500/10 px-5 py-2 rounded-lg text-sm">{checkOutTime}</span>
                     </td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] whitespace-nowrap text-sm">
+                    <td className="py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] whitespace-nowrap text-sm">
                       {breakMins > 0 ? (
-                        <span className="bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-xs">{breakMins}m</span>
+                        <span className="bg-orange-500/10 text-orange-400 px-4 py-1.5 rounded-lg text-xs font-semibold">{breakMins}m</span>
                       ) : '-'}
                     </td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] font-medium whitespace-nowrap text-sm">{formatDuration(shift.duration)}</td>
-                    <td className="py-3 md:py-4 px-3 md:px-4 text-[var(--f22-text-muted)] text-sm max-w-[150px] truncate">{displayNote || '-'}</td>
-                    <td className="py-3 md:py-4 px-4 md:px-6 whitespace-nowrap">
+                    <td className="py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-secondary)] font-semibold whitespace-nowrap text-sm">{formatDuration(shift.duration)}</td>
+                    <td className="py-4 md:py-5 px-4 md:px-5 text-[var(--f22-text-muted)] text-sm max-w-[150px] truncate">{displayNote || '-'}</td>
+                    <td className="py-4 md:py-5 px-5 md:px-6 whitespace-nowrap">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(shift)}
-                          className="p-2 text-amber-400 hover:bg-amber-500/20 rounded transition-all"
+                          className="p-2.5 text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
                           title={t.edit}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +325,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                         </button>
                         <button
                           onClick={() => handleDelete(shift.id)}
-                          className="p-2 text-red-400 hover:bg-red-500/20 rounded transition-all"
+                          className="p-2.5 text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                           title={t.delete}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,76 +345,76 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
 
       {/* Edit Modal */}
       {editingShift && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
-          <div className="bg-[var(--f22-surface)] rounded-lg p-6 md:p-8 lg:p-10 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto border border-[var(--f22-border)]">
-            <h3 className="text-xl md:text-2xl font-bold text-[var(--f22-text)] mb-6 md:mb-8">{t.editShift}</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
+          <div className="bg-[var(--f22-surface)] rounded-2xl p-7 md:p-9 lg:p-10 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto border border-[var(--f22-border)]">
+            <h3 className="text-xl md:text-2xl font-bold text-[var(--f22-text)] mb-7 md:mb-8 tracking-tight">{t.editShift}</h3>
             
             <div className="space-y-4 md:space-y-6">
               {/* Check In Section */}
-              <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-5 border border-[var(--f22-border)]">
-                <label className="block text-[var(--f22-text)] mb-3 md:mb-4 font-bold text-base md:text-lg">{t.checkInTime}</label>
+              <div className="bg-[var(--f22-surface-light)] rounded-xl p-5 md:p-6 border border-[var(--f22-border)]">
+                <label className="block text-[var(--f22-text)] mb-4 md:mb-5 font-bold text-base md:text-lg tracking-tight">{t.checkInTime}</label>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <label className="block text-[var(--f22-text-muted)] mb-2 font-medium text-sm">Date</label>
+                    <label className="block text-[var(--f22-text-muted)] mb-2 font-semibold text-xs uppercase tracking-wider">Date</label>
                     <input
                       type="date"
                       value={editForm.checkInDate}
                       onChange={(e) => setEditForm({ ...editForm, checkInDate: e.target.value })}
-                      className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                      className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-[var(--f22-text-muted)] mb-2 font-medium text-sm">Time</label>
+                    <label className="block text-[var(--f22-text-muted)] mb-2 font-semibold text-xs uppercase tracking-wider">Time</label>
                     <input
                       type="time"
                       value={editForm.checkInTime}
                       onChange={(e) => setEditForm({ ...editForm, checkInTime: e.target.value })}
-                      className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                      className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all"
                     />
                   </div>
                 </div>
               </div>
               
               {/* Check Out Section */}
-              <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-5 border border-[var(--f22-border)]">
-                <label className="block text-[var(--f22-text)] mb-3 md:mb-4 font-bold text-base md:text-lg">{t.checkOutTime}</label>
+              <div className="bg-[var(--f22-surface-light)] rounded-xl p-5 md:p-6 border border-[var(--f22-border)]">
+                <label className="block text-[var(--f22-text)] mb-4 md:mb-5 font-bold text-base md:text-lg tracking-tight">{t.checkOutTime}</label>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <label className="block text-[var(--f22-text-muted)] mb-2 font-medium text-sm">Date</label>
+                    <label className="block text-[var(--f22-text-muted)] mb-2 font-semibold text-xs uppercase tracking-wider">Date</label>
                     <input
                       type="date"
                       value={editForm.checkOutDate}
                       onChange={(e) => setEditForm({ ...editForm, checkOutDate: e.target.value })}
-                      className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                      className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-[var(--f22-text-muted)] mb-2 font-medium text-sm">Time</label>
+                    <label className="block text-[var(--f22-text-muted)] mb-2 font-semibold text-xs uppercase tracking-wider">Time</label>
                     <input
                       type="time"
                       value={editForm.checkOutTime}
                       onChange={(e) => setEditForm({ ...editForm, checkOutTime: e.target.value })}
-                      className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                      className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Break Minutes */}
-              <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-5 border border-[var(--f22-border)]">
-                <label className="block text-[var(--f22-text)] mb-3 md:mb-4 font-bold text-base md:text-lg">{t.breakMinutes}</label>
+              <div className="bg-[var(--f22-surface-light)] rounded-xl p-5 md:p-6 border border-[var(--f22-border)]">
+                <label className="block text-[var(--f22-text)] mb-4 md:mb-5 font-bold text-base md:text-lg tracking-tight">{t.breakMinutes}</label>
                 <input
                   type="number"
                   min="0"
                   value={editForm.breakMinutes}
                   onChange={(e) => setEditForm({ ...editForm, breakMinutes: parseInt(e.target.value, 10) || 0 })}
-                  className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                  className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all"
                 />
               </div>
               
               {/* Day Type */}
               <div>
-                <label className="block text-[var(--f22-text)] mb-3 md:mb-4 font-bold text-base md:text-lg">{t.dayType}</label>
+                <label className="block text-[var(--f22-text)] mb-4 md:mb-5 font-bold text-base md:text-lg tracking-tight">{t.dayType}</label>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   {[
                     { value: 'office', label: `🏢 ${t.office}` },
@@ -426,10 +426,10 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                       key={type.value}
                       type="button"
                       onClick={() => handleDayTypeSelect(type.value as typeof editForm.dayType)}
-                      className={`px-3 md:px-4 py-2.5 md:py-3 min-h-[44px] md:min-h-[48px] rounded-lg border-2 transition-all font-medium text-sm md:text-base ${
+                      className={`px-4 md:px-5 py-3 md:py-3.5 min-h-[48px] rounded-xl border transition-all font-semibold text-sm md:text-base ${
                         editForm.dayType === type.value
-                          ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
-                          : 'border-[var(--f22-border)] hover:border-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)]'
+                          ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D] shadow-[var(--shadow-glow)]'
+                          : 'border-[var(--f22-border)] hover:border-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] text-[var(--f22-text-secondary)]'
                       }`}
                     >
                       {type.label}
@@ -439,27 +439,27 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
               </div>
               
               <div>
-                <label className="block text-[var(--f22-text)] mb-3 font-bold text-base md:text-lg">{t.note} ({t.optional})</label>
+                <label className="block text-[var(--f22-text)] mb-3 font-bold text-base md:text-lg tracking-tight">{t.note} ({t.optional})</label>
                 <textarea
                   value={editForm.note}
                   onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
-                  className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] resize-none transition-all"
+                  className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-xl px-4 md:px-5 py-3 md:py-3.5 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] resize-none transition-all"
                   rows={3}
                   placeholder={t.addNote}
                 />
               </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row gap-3 md:gap-4 mt-6 md:mt-8">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 md:gap-4 mt-7 md:mt-9">
               <button
                 onClick={() => setEditingShift(null)}
-                className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text-muted)] py-3 md:py-4 min-h-[44px] md:min-h-[48px] rounded-lg hover:bg-[var(--f22-border)] transition-all font-semibold text-sm md:text-base border border-[var(--f22-border)]"
+                className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text-secondary)] py-3.5 md:py-4 min-h-[48px] rounded-xl hover:bg-[var(--f22-surface-elevated)] transition-all font-semibold text-sm md:text-base border border-[var(--f22-border)]"
               >
                 {t.cancel}
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 md:py-4 min-h-[44px] md:min-h-[48px] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold text-sm md:text-base shadow-lg shadow-[#39FF14]/30"
+                className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3.5 md:py-4 min-h-[48px] rounded-xl hover:brightness-110 transition-all font-bold text-sm md:text-base shadow-[var(--shadow-glow)]"
               >
                 {t.save}
               </button>

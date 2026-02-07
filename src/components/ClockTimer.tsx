@@ -47,7 +47,7 @@ const ClockTimer = ({ isRunning, startTime }: ClockTimerProps) => {
     <div className="my-8">
       {/* Current Time Display */}
       <div className="text-center mb-6">
-        <div className="text-6xl md:text-7xl font-bold text-white">
+        <div className="text-6xl md:text-7xl font-extrabold text-[var(--f22-text)] tracking-tight">
           {currentTime.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
@@ -55,36 +55,36 @@ const ClockTimer = ({ isRunning, startTime }: ClockTimerProps) => {
             hour12: false 
           })}
         </div>
-        <div className="text-gray-400 mt-2">
+        <div className="text-[var(--f22-text-muted)] mt-3 text-sm font-medium">
           {`${currentTime.getDate().toString().padStart(2, '0')}/${(currentTime.getMonth() + 1).toString().padStart(2, '0')}/${currentTime.getFullYear()}`}
         </div>
       </div>
 
       {/* Elapsed Time (when in shift) */}
       {isRunning && (
-        <div className="bg-[#39FF14] border-2 border-[#39FF14] rounded p-4 mt-4">
+        <div className="bg-[#39FF14]/10 border border-[#39FF14]/25 rounded-2xl p-5 mt-4">
           <div className="text-center">
-            <div className="text-[#0D0D0D] font-medium mb-2">{t.workingFor}:</div>
+            <div className="text-[#39FF14] font-semibold mb-3 text-sm uppercase tracking-wider">{t.workingFor}:</div>
             <div className="flex items-center justify-center gap-2">
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
+                <div className="text-3xl md:text-4xl font-extrabold text-[#39FF14] tracking-tight">
                   {formatNumber(elapsed.hours)}
                 </div>
-                <div className="text-[#0D0D0D] text-xs mt-1">{t.hours}</div>
+                <div className="text-[#39FF14]/60 text-xs mt-1.5 font-semibold uppercase tracking-wider">{t.hours}</div>
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">:</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-[#39FF14]/40">:</div>
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
+                <div className="text-3xl md:text-4xl font-extrabold text-[#39FF14] tracking-tight">
                   {formatNumber(elapsed.minutes)}
                 </div>
-                <div className="text-[#0D0D0D] text-xs mt-1">{t.minutes}</div>
+                <div className="text-[#39FF14]/60 text-xs mt-1.5 font-semibold uppercase tracking-wider">{t.minutes}</div>
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">:</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-[#39FF14]/40">:</div>
               <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-[#0D0D0D]">
+                <div className="text-3xl md:text-4xl font-extrabold text-[#39FF14] tracking-tight">
                   {formatNumber(elapsed.seconds)}
                 </div>
-                <div className="text-[#0D0D0D] text-xs mt-1">{t.seconds}</div>
+                <div className="text-[#39FF14]/60 text-xs mt-1.5 font-semibold uppercase tracking-wider">{t.seconds}</div>
               </div>
             </div>
           </div>

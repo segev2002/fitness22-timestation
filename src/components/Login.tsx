@@ -52,7 +52,7 @@ const Login = ({ onLogin }: LoginProps) => {
       <div className="flex justify-end p-4 sm:p-6">
         <button
           onClick={toggleLanguage}
-          className="bg-[var(--f22-surface)] text-[#39FF14] px-4 sm:px-5 py-2.5 sm:py-3 min-h-[44px] rounded-lg hover:bg-[var(--f22-surface-light)] transition-all flex items-center gap-2 sm:gap-3 font-medium border border-[var(--f22-border)]"
+          className="bg-[var(--f22-surface)] text-[var(--f22-text-secondary)] px-5 sm:px-6 py-2.5 sm:py-3 min-h-[44px] rounded-xl hover:bg-[var(--f22-surface-light)] transition-all flex items-center gap-2.5 sm:gap-3 font-semibold text-sm border border-[var(--f22-border)]"
           title={language === 'he' ? 'Switch to English' : 'החלף לעברית'}
         >
           {language === 'he' ? (
@@ -86,55 +86,55 @@ const Login = ({ onLogin }: LoginProps) => {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="text-center mb-6 md:mb-8">
-            <div className="inline-flex items-center justify-center mb-4">
+          <div className="text-center mb-10 md:mb-12">
+            <div className="inline-flex items-center justify-center mb-6">
               <img
                 src={isDark ? '/Logo_fitness.png' : '/logo_black.png'}
                 alt="Fitness22"
-                className="h-8 md:h-10 w-auto"
+                className="h-10 md:h-12 w-auto"
               />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[var(--f22-text)] mb-2 md:mb-3">{t.appTitle}</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[var(--f22-text)] mb-4 md:mb-5 tracking-tight">{t.appTitle}</h1>
             <p className="text-[var(--f22-text-muted)] text-base md:text-lg">{t.appSubtitle}</p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-6 md:p-8">
-            <h2 className="text-xl md:text-2xl font-bold text-[var(--f22-text)] mb-6 md:mb-8 text-center">
+          <div className="bg-[var(--f22-surface)] rounded-2xl shadow-[var(--shadow-lg)] border border-[var(--f22-border)] p-8 md:p-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-[var(--f22-text)] mb-8 md:mb-10 text-center tracking-tight">
               {t.login}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
               <div>
-                <label className="block text-sm font-medium text-[var(--f22-text-muted)] mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2.5">
                   {t.email}
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-lg px-4 py-3 min-h-[48px] focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                  className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-xl px-5 py-3.5 min-h-[52px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all text-[15px]"
                   placeholder={t.enterEmail}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--f22-text-muted)] mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2.5">
                   {t.password}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border-2 border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-lg px-4 py-3 min-h-[48px] focus:outline-none focus:ring-2 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all"
+                  className="w-full border border-[var(--f22-border)] bg-[var(--f22-surface-light)] text-[var(--f22-text)] placeholder-[var(--f22-text-muted)] rounded-xl px-5 py-3.5 min-h-[52px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 focus:border-[#39FF14] transition-all text-[15px]"
                   placeholder={t.enterPassword}
                   required
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm text-center border border-red-500/30">
+                <div className="bg-red-500/10 text-red-400 px-5 py-3.5 rounded-xl text-sm text-center border border-red-500/20 font-medium">
                   {error}
                 </div>
               )}
@@ -142,7 +142,7 @@ const Login = ({ onLogin }: LoginProps) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#39FF14] text-[#0D0D0D] py-4 min-h-[48px] rounded-lg text-lg font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] flex items-center justify-center gap-3"
+                className="w-full bg-[#39FF14] text-[#0D0D0D] py-5 min-h-[56px] rounded-xl text-lg font-bold hover:brightness-110 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:transform-none shadow-[var(--shadow-glow-strong)] hover:shadow-[0_0_28px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3"
               >
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">

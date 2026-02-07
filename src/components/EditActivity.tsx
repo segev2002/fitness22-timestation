@@ -292,23 +292,23 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
 
   return (
     <div className="w-full min-h-[calc(100vh-72px)] flex flex-col" style={{ backgroundColor: 'var(--f22-background)' }}>
-      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 min-h-[calc(100vh-72px)] flex flex-col">
+      <div className="px-5 sm:px-8 md:px-12 py-4 sm:py-6 min-h-[calc(100vh-72px)] flex flex-col">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 bg-[#39FF14] rounded-lg">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 bg-[#39FF14]/10 rounded-xl">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--f22-text)' }}>{t.bulkCalendar}</h2>
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight" style={{ color: 'var(--f22-text)' }}>{t.bulkCalendar}</h2>
           </div>
           
           {/* Month Navigation */}
           <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
             <button
               onClick={handlePrevMonth}
-              className="p-2 sm:p-2.5 rounded-lg transition-colors"
+              className="p-2 sm:p-2.5 rounded-xl transition-colors"
               style={{ backgroundColor: 'transparent' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--f22-surface)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -322,7 +322,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-2 sm:p-2.5 rounded-lg transition-colors"
+              className="p-2 sm:p-2.5 rounded-xl transition-colors"
               style={{ backgroundColor: 'transparent' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--f22-surface)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -355,7 +355,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
             {t.days_short.map((day: string) => (
-              <div key={day} className="text-center py-1 sm:py-2 font-medium text-xs sm:text-sm" style={{ color: 'var(--f22-muted)' }}>
+              <div key={day} className="text-center py-1 sm:py-2 font-semibold text-xs sm:text-sm" style={{ color: 'var(--f22-muted)' }}>
                 {day}
               </div>
             ))}
@@ -397,7 +397,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                   onMouseDown={() => handleDayMouseDown(day.date, day.isCurrentMonth)}
                   onMouseEnter={() => handleDayMouseEnter(day.date, day.isCurrentMonth)}
                   className={`
-                    relative min-h-[calc((100vh-300px)/6)] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-lg transition-all
+                    relative min-h-[calc((100vh-300px)/6)] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-xl transition-all
                     ${day.isSelected ? 'shadow-lg scale-105' : ''}
                     ${!day.isCurrentMonth || isFutureDate ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
                   `}
@@ -427,18 +427,18 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-center mt-6 sm:mt-8 pt-4 sm:pt-6" style={{ borderTop: '1px solid var(--f22-border)' }}>
+        <div className="flex items-center justify-center mt-6 sm:mt-8 pt-4 sm:pt-6" style={{ borderTop: '1px solid var(--f22-border-subtle)' }}>
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
             {selectedDays.size > 0 && (
-              <span className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium" style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}>
+              <span className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}>
                 {selectedDays.size} {t.daysSelected}
               </span>
             )}
             {selectedDays.size > 0 && (
               <button
                 onClick={handleClearSelection}
-                className="px-3 sm:px-5 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] rounded-lg transition-colors font-medium text-sm"
-                style={{ color: 'var(--f22-muted)' }}
+                className="px-3 sm:px-5 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] rounded-xl transition-colors font-semibold text-sm"
+                style={{ color: 'var(--f22-text-secondary)' }}
               >
                 {t.clear}
               </button>
@@ -446,7 +446,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
             {selectedDays.size > 0 && (
               <button
                 onClick={handleDeleteSelected}
-                className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-bold shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
+                className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-bold shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -457,7 +457,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
             <button
               onClick={handleBulkFill}
               disabled={selectedDays.size === 0}
-              className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[48px] bg-[#39FF14] text-[#0D0D0D] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold disabled:bg-[#333333] disabled:text-gray-600 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
+              className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] bg-[#39FF14] text-[#0D0D0D] rounded-xl hover:brightness-110 transition-all font-bold disabled:bg-[#333333] disabled:text-gray-600 disabled:cursor-not-allowed shadow-[var(--shadow-glow)] flex items-center gap-2 sm:gap-3 text-sm"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -470,8 +470,8 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
         {/* Bulk Fill Modal */}
         {showBulkModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6">
-            <div className="rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--f22-surface)', border: '1px solid var(--f22-border)' }}>
-              <h3 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: 'var(--f22-text)' }}>{t.bulkFillTitle}</h3>
+            <div className="rounded-2xl p-5 sm:p-7 md:p-9 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--f22-surface)', border: '1px solid var(--f22-border)' }}>
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" style={{ color: 'var(--f22-text)' }}>{t.bulkFillTitle}</h3>
               <p className="mb-6 sm:mb-8 text-sm sm:text-base" style={{ color: 'var(--f22-muted)' }}>
                 {t.detailsWillApply} {selectedDays.size} {t.selectedDays}
               </p>
@@ -480,41 +480,41 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                 {/* Time Inputs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.checkInTimeLabel}</label>
+                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.checkInTimeLabel}</label>
                     <input
                       type="time"
                       value={formData.checkInTime}
                       onChange={(e) => setFormData({ ...formData, checkInTime: e.target.value })}
-                      className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
+                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
+                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.checkOutTimeLabel}</label>
+                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.checkOutTimeLabel}</label>
                     <input
                       type="time"
                       value={formData.checkOutTime}
                       onChange={(e) => setFormData({ ...formData, checkOutTime: e.target.value })}
-                      className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
+                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
+                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.breakMinutes}</label>
+                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.breakMinutes}</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.breakMinutes}
                       onChange={(e) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
+                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
+                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
                     />
                   </div>
                 </div>
 
                 {/* Day Type */}
                 <div>
-                  <label className="block mb-3 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.dayType}</label>
+                  <label className="block mb-3 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.dayType}</label>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     {[
                       { value: 'office', label: `🏢 ${t.office}` },
@@ -526,7 +526,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                         key={type.value}
                         type="button"
                         onClick={() => handleDayTypeSelect(type.value as BulkFormData['dayType'])}
-                        className={`px-3 sm:px-4 py-2.5 sm:py-3 min-h-[44px] sm:min-h-[48px] rounded-lg border-2 transition-all font-medium text-sm sm:text-base ${
+                        className={`px-3 sm:px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[52px] rounded-xl border transition-all font-semibold text-sm sm:text-base ${
                           formData.dayType === type.value
                             ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
                             : ''
@@ -541,12 +541,12 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
 
                 {/* Note */}
                 <div>
-                  <label className="block mb-2 font-medium text-sm sm:text-base" style={{ color: 'var(--f22-text)' }}>{t.note} ({t.optional})</label>
+                  <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.note} ({t.optional})</label>
                   <textarea
                     value={formData.note}
                     onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    className="w-full rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#39FF14] resize-none transition-all placeholder:opacity-50"
-                    style={{ backgroundColor: 'var(--f22-background)', border: '2px solid var(--f22-border)', color: 'var(--f22-text)' }}
+                    className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 resize-none transition-all placeholder:opacity-50"
+                    style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
                     rows={3}
                     placeholder={t.addNote}
                   />
@@ -557,14 +557,14 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
               <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                 <button
                   onClick={() => setShowBulkModal(false)}
-                  className="flex-1 py-3 sm:py-4 min-h-[44px] sm:min-h-[48px] rounded-lg transition-all font-semibold text-sm sm:text-base"
+                  className="flex-1 py-3 sm:py-4 min-h-[48px] sm:min-h-[52px] rounded-xl transition-all font-semibold text-sm sm:text-base"
                   style={{ backgroundColor: 'var(--f22-border)', color: 'var(--f22-text)' }}
                 >
                   {t.cancel}
                 </button>
                 <button
                   onClick={handleApplyBulk}
-                  className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 sm:py-4 min-h-[44px] sm:min-h-[48px] rounded-lg hover:bg-[var(--f22-green)] transition-all font-bold text-sm sm:text-base shadow-lg flex items-center justify-center gap-2 sm:gap-3"
+                  className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 sm:py-4 min-h-[48px] sm:min-h-[52px] rounded-xl hover:brightness-110 transition-all font-bold text-sm sm:text-base shadow-[var(--shadow-glow)] flex items-center justify-center gap-2 sm:gap-3"
                 >
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

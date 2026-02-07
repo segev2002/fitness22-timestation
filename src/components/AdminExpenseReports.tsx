@@ -378,17 +378,17 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
   }
   
   return (
-    <div className={`space-y-6 ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div className={`space-y-6 px-5 sm:px-8 md:px-12 py-8 md:py-10 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl font-bold text-[var(--f22-text)]">{t.expenseReports}</h2>
+        <h2 className="text-xl font-bold tracking-tight text-[var(--f22-text)]">{t.expenseReports}</h2>
         
         <div className="flex items-center gap-4">
           {/* Month selector */}
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-4 py-2 bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text)] focus:outline-none focus:border-[#39FF14]"
+            className="px-5 py-3.5 min-h-[52px] text-[15px] bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40"
           >
             {monthOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -399,13 +399,13 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
           <div className="flex gap-2">
             <button
               onClick={expandAll}
-              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
+              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
             >
               Expand All
             </button>
             <button
               onClick={collapseAll}
-              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-lg text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
+              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
             >
               Collapse All
             </button>
@@ -423,16 +423,16 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
           {reportsByUser.map(([userId, { user: reportUser, reports: userReports }]) => (
             <div
               key={userId}
-              className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] overflow-hidden"
+              className="bg-[var(--f22-surface)] rounded-2xl border border-[var(--f22-border)] overflow-hidden"
             >
               {/* User header - clickable to expand/collapse */}
               <button
                 onClick={() => toggleUserExpansion(userId)}
-                className="w-full flex items-center justify-between p-4 hover:bg-[var(--f22-surface-light)] transition-colors"
+                className="w-full flex items-center justify-between p-4 hover:bg-[var(--f22-surface-elevated)] transition-colors"
               >
                 <div className="flex items-center gap-4">
                   {/* Avatar */}
-                  <div className="w-10 h-10 bg-[#39FF14] rounded-full flex items-center justify-center text-[#0D0D0D] font-bold overflow-hidden">
+                  <div className="w-10 h-10 bg-[#39FF14]/10 rounded-full flex items-center justify-center text-[#39FF14] font-bold overflow-hidden">
                     {reportUser?.profilePicture ? (
                       <img src={reportUser.profilePicture} alt={reportUser.name} className="w-full h-full object-cover" />
                     ) : (
@@ -474,7 +474,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
               
               {/* Expanded content */}
               {expandedUsers.has(userId) && (
-                <div className="border-t border-[var(--f22-border)]">
+                <div className="border-t border-[var(--f22-border-subtle)]">
                   {userReports.map((report) => (
                     <div
                       key={report.id}
@@ -483,7 +483,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                       {/* Report header */}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
-                          <h4 className="font-medium text-[var(--f22-text)]">
+                          <h4 className="font-semibold text-[var(--f22-text)]">
                             {report.expensePeriod}
                           </h4>
                           <p className="text-sm text-[var(--f22-text-muted)]">
@@ -495,7 +495,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                           {/* PDF download */}
                           <button
                             onClick={() => generatePDF(report)}
-                            className="px-5 py-2.5 min-h-[44px] text-sm bg-[#39FF14] text-[#0D0D0D] rounded-lg font-semibold hover:bg-[var(--f22-green)] transition-colors flex items-center gap-2 shadow-md shadow-[#39FF14]/30"
+                            className="px-5 py-2.5 min-h-[44px] text-sm bg-[#39FF14] text-[#0D0D0D] rounded-xl font-semibold hover:brightness-110 transition-colors flex items-center gap-2 shadow-[var(--shadow-glow)]"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -505,7 +505,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                           {getInvoiceItems(report).length > 0 && (
                             <button
                               onClick={() => handleDownloadInvoices(report)}
-                              className="px-4 py-2.5 min-h-[44px] text-sm bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg hover:border-[#39FF14] border border-[var(--f22-border)] transition-colors flex items-center gap-2"
+                              className="px-4 py-2.5 min-h-[44px] text-sm bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl hover:border-[#39FF14] border border-[var(--f22-border)] transition-colors flex items-center gap-2"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M14 14l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -515,7 +515,7 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                           )}
                           <button
                             onClick={() => handleDeleteReport(report.id)}
-                            className="px-4 py-2.5 min-h-[44px] text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                            className="px-4 py-2.5 min-h-[44px] text-sm bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -529,8 +529,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* NIS */}
                         {report.itemsNIS.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-lg p-3">
-                            <h5 className="text-sm font-medium text-[var(--f22-text-muted)] mb-2">NIS</h5>
+                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
+                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">NIS</h5>
                             <div className="space-y-1">
                               {report.itemsNIS.map(item => (
                                 <div key={item.id} className="flex justify-between text-sm">
@@ -548,8 +548,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                         
                         {/* USD */}
                         {report.itemsUSD.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-lg p-3">
-                            <h5 className="text-sm font-medium text-[var(--f22-text-muted)] mb-2">USD</h5>
+                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
+                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">USD</h5>
                             <div className="space-y-1">
                               {report.itemsUSD.map(item => (
                                 <div key={item.id} className="flex justify-between text-sm">
@@ -573,8 +573,8 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                         
                         {/* EUR */}
                         {report.itemsEUR.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-lg p-3">
-                            <h5 className="text-sm font-medium text-[var(--f22-text-muted)] mb-2">EUR</h5>
+                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
+                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">EUR</h5>
                             <div className="space-y-1">
                               {report.itemsEUR.map(item => (
                                 <div key={item.id} className="flex justify-between text-sm">
@@ -599,15 +599,15 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                       
                       {/* Invoices section */}
                       {getInvoiceItems(report).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-[var(--f22-border)]">
-                          <h5 className="text-sm font-medium text-[var(--f22-text-muted)] mb-2">Invoices</h5>
+                        <div className="mt-4 pt-4 border-t border-[var(--f22-border-subtle)]">
+                          <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">Invoices</h5>
                           <div className="flex flex-wrap gap-2">
                             {getInvoiceItems(report)
                               .map((item, index) => (
                                 <button
                                   key={item.id}
                                   onClick={() => handleDownloadInvoiceItem(report, item, index)}
-                                  className="px-3 py-1 text-xs bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded hover:border-[#39FF14] transition-colors flex items-center gap-1"
+                                  className="px-3 py-1 text-xs bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl hover:border-[#39FF14] transition-colors flex items-center gap-1"
                                 >
                                   📎 {item.description.substring(0, 20)}{item.description.length > 20 ? '...' : ''}
                                 </button>

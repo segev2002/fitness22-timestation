@@ -1,21 +1,28 @@
 @import "tailwindcss";
 
-/* Fitness22 Design System Variables */
+/* ═══════════════════════════════════════════════════════════
+   Fitness22 Design System — Sleek Dark Mode
+   Font: Noto Sans Hebrew + Inter fallback
+   ═══════════════════════════════════════════════════════════ */
+
 /* Light Theme (default) */
 :root {
-  /* Colors - Light Mode */
   --f22-green: #39FF14;
-  --f22-green-dark: #00D438;
+  --f22-green-dark: #2ED60F;
+  --f22-green-muted: #39FF1426;
   --f22-green-light: #E8FFE3;
-  --f22-bg: #F8F9FA;
+  --f22-bg: #F5F6F8;
   --f22-surface: #FFFFFF;
-  --f22-surface-light: #F3F4F6;
-  --f22-text: #111827;
-  --f22-text-muted: #6B7280;
-  --f22-border: #E5E7EB;
+  --f22-surface-light: #F0F1F4;
+  --f22-surface-elevated: #FFFFFF;
+  --f22-text: #0F1117;
+  --f22-text-secondary: #4B5163;
+  --f22-text-muted: #7C829B;
+  --f22-border: #E2E4EA;
+  --f22-border-subtle: #EEEFF3;
   --f22-logo-filter: invert(1) brightness(0.3);
 
-  /* Spacing Scale */
+  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -26,29 +33,49 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Component Sizing */
+  /* Component tokens */
   --input-height: 48px;
   --button-height: 48px;
   --touch-min: 44px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+  --shadow-glow: 0 0 20px rgba(57,255,20,.15);
+  --shadow-glow-strong: 0 0 32px rgba(57,255,20,.25);
 }
 
 /* Dark Theme */
 :root.dark {
   --f22-green: #39FF14;
-  --f22-green-dark: #00D438;
-  --f22-green-light: #1A2F1A;
-  --f22-bg: #0D0D0D;
-  --f22-surface: #1A1A1A;
-  --f22-surface-light: #252525;
-  --f22-text: #FFFFFF;
-  --f22-text-muted: #9CA3AF;
-  --f22-border: #333333;
+  --f22-green-dark: #2ED60F;
+  --f22-green-muted: #39FF1418;
+  --f22-green-light: #162016;
+  --f22-bg: #09090B;
+  --f22-surface: #111113;
+  --f22-surface-light: #1A1A1F;
+  --f22-surface-elevated: #222228;
+  --f22-text: #F4F4F6;
+  --f22-text-secondary: #A1A1B0;
+  --f22-text-muted: #63637A;
+  --f22-border: #27272F;
+  --f22-border-subtle: #1E1E24;
   --f22-logo-filter: none;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,.4);
+  --shadow-glow: 0 0 24px rgba(57,255,20,.12);
+  --shadow-glow-strong: 0 0 40px rgba(57,255,20,.2);
 }
 
+/* ─── Reset ─────────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -62,13 +89,19 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Noto Sans Hebrew', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--f22-bg);
   color: var(--f22-text);
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+  line-height: 1.6;
 }
 
 #root {
@@ -77,16 +110,11 @@ body {
   min-height: 100vh;
 }
 
-/* RTL/LTR support */
-html[dir="rtl"] body {
-  direction: rtl;
-}
+/* ─── RTL / LTR ────────────────────────────────────────── */
+html[dir="rtl"] body { direction: rtl; }
+html[dir="ltr"] body { direction: ltr; }
 
-html[dir="ltr"] body {
-  direction: ltr;
-}
-
-/* iOS Safe Area Support */
+/* ─── iOS Safe Area ─────────────────────────────────────── */
 @supports (padding-top: env(safe-area-inset-top)) {
   body {
     padding-top: env(safe-area-inset-top);
@@ -96,22 +124,44 @@ html[dir="ltr"] body {
   }
 }
 
-/* Custom scrollbar - adapts to theme */
+/* ─── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--f22-surface);
-  border-radius: 4px;
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--f22-border);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--f22-text-muted);
+}
+
+/* ─── Selection ─────────────────────────────────────────── */
+::selection {
+  background: rgba(57,255,20,.2);
+  color: var(--f22-text);
+}
+
+/* ─── Focus ring ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--f22-green);
+  outline-offset: 2px;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--f22-text-muted);
+/* ─── Smooth transitions ────────────────────────────────── */
+button, a, input, select, textarea {
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+}
+
+/* ─── Utility: glass effect ─────────────────────────────── */
+.glass {
+  background: rgba(17,17,19,.7);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
 }

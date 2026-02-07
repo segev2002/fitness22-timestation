@@ -14,6 +14,7 @@ interface CalendarDay {
   dateStr: string;
   isCurrentMonth: boolean;
   isToday: boolean;
+  isFuture: boolean;
   hasShift: boolean;
 }
 
@@ -61,25 +62,25 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
     const prevMonth = new Date(year, month, 0);
     for (let i = startDay - 1; i >= 0; i--) {
       const d = new Date(year, month - 1, prevMonth.getDate() - i);
-      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, hasShift: false });
+      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, isFuture: d > today, hasShift: false });
     }
     // Current month
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const d = new Date(year, month, day);
       const dateStr = d.toISOString().split('T')[0];
-      days.push({ date: d, dateStr, isCurrentMonth: true, isToday: dateStr === todayStr, hasShift: shiftDates.has(dateStr) });
+      days.push({ date: d, dateStr, isCurrentMonth: true, isToday: dateStr === todayStr, isFuture: dateStr > todayStr, hasShift: shiftDates.has(dateStr) });
     }
     // Next month padding
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const d = new Date(year, month + 1, i);
-      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, hasShift: false });
+      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, isFuture: true, hasShift: false });
     }
     return days;
   };
 
-  const handleDayMouseDown = (dateStr: string, isCurrentMonth: boolean) => {
-    if (!isCurrentMonth) return;
+  const handleDayMouseDown = (dateStr: string, isCurrentMonth: boolean, isFuture: boolean) => {
+    if (!isCurrentMonth || isFuture) return;
     setIsDragging(true);
     setSelectedDays(prev => {
       const next = new Set(prev);
@@ -88,8 +89,8 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
     });
   };
 
-  const handleDayMouseEnter = (dateStr: string, isCurrentMonth: boolean) => {
-    if (!isDragging || !isCurrentMonth) return;
+  const handleDayMouseEnter = (dateStr: string, isCurrentMonth: boolean, isFuture: boolean) => {
+    if (!isDragging || !isCurrentMonth || isFuture) return;
     setSelectedDays(prev => new Set([...prev, dateStr]));
   };
 
@@ -188,11 +189,12 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
           ))}
           {calendarDays.map(day => {
             const isSelected = selectedDays.has(day.dateStr);
+            const isDisabled = !day.isCurrentMonth || day.isFuture;
             return (
               <div
                 key={day.dateStr}
-                onMouseDown={() => handleDayMouseDown(day.dateStr, day.isCurrentMonth)}
-                onMouseEnter={() => handleDayMouseEnter(day.dateStr, day.isCurrentMonth)}
+                onMouseDown={() => handleDayMouseDown(day.dateStr, day.isCurrentMonth, day.isFuture)}
+                onMouseEnter={() => handleDayMouseEnter(day.dateStr, day.isCurrentMonth, day.isFuture)}
                 style={{
                   position: 'relative',
                   padding: '10px 4px',
@@ -200,8 +202,8 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                   textAlign: 'center',
                   fontSize: 14,
                   fontWeight: day.isToday ? 700 : 500,
-                  cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                  opacity: day.isCurrentMonth ? 1 : 0.3,
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled ? 0.3 : 1,
                   color: isSelected ? '#0D0D0D' : day.isToday ? '#39FF14' : 'var(--f22-text)',
                   background: isSelected ? '#39FF14' : day.hasShift ? 'rgba(57,255,20,.1)' : 'transparent',
                   border: day.isToday && !isSelected ? '2px solid #39FF14' : '2px solid transparent',

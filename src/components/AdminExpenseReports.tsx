@@ -5,7 +5,7 @@ import type { User, ExpenseReport } from '../types';
 
 interface AdminExpenseReportsProps { user: User; }
 
-const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
+const AdminExpenseReports = ({ user: _user }: AdminExpenseReportsProps) => {
   const { t } = useLanguage();
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -41,16 +41,6 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
   const handleDeleteReport = async (reportId: string) => {
     if (!confirm(t.confirmDeleteExpenseReport)) return;
     await supabaseExpenses.delete(reportId);
-    loadData();
-  };
-
-  const handleApprove = async (reportId: string) => {
-    await supabaseExpenses.updateStatus(reportId, 'approved', user.name);
-    loadData();
-  };
-
-  const handleReject = async (reportId: string) => {
-    await supabaseExpenses.updateStatus(reportId, 'rejected');
     loadData();
   };
 
@@ -174,12 +164,25 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
 
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                          {report.status === 'submitted' && (
-                            <>
-                              <button onClick={() => handleApprove(report.id)} className="btn-sm green">{t.approveReport}</button>
-                              <button onClick={() => handleReject(report.id)} className="btn-sm danger">{t.rejectReport}</button>
-                            </>
-                          )}
+                          {/* View Invoice – opens the first invoice found across all currency items */}
+                          {(() => {
+                            const allItems = [...report.itemsNIS, ...report.itemsUSD, ...report.itemsEUR];
+                            const invoices = allItems.filter(i => i.invoiceUrl || i.invoiceBase64);
+                            if (invoices.length === 0) return null;
+                            return invoices.map((item, idx) => (
+                              <a
+                                key={item.id}
+                                href={item.invoiceUrl || item.invoiceBase64}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-sm green"
+                                style={{ textDecoration: 'none' }}
+                              >
+                                <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                {t.viewInvoice}{invoices.length > 1 ? ` ${idx + 1}` : ''}
+                              </a>
+                            ));
+                          })()}
                           <button onClick={() => handleGeneratePDF(report)} className="btn-sm ghost">
                             <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             {t.downloadPDF}

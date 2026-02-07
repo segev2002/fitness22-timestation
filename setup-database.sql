@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS active_shifts (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   user_name TEXT NOT NULL,
   check_in TIMESTAMPTZ NOT NULL,
+  start_time BIGINT NOT NULL,
   note TEXT,
   day_type TEXT
 );
@@ -42,28 +43,45 @@ ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_shifts ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for users table
-CREATE POLICY "Users can view own record" ON users
-  FOR SELECT USING (auth.uid()::text = id);
+-- Using permissive policies since this is an internal company app
+-- with custom user authentication (not Supabase Auth)
+CREATE POLICY "Users can view all" ON users
+  FOR SELECT USING (true);
 
-CREATE POLICY "Users can update own record" ON users
-  FOR UPDATE USING (auth.uid()::text = id);
+CREATE POLICY "Users can insert all" ON users
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can update all" ON users
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Users can delete all" ON users
+  FOR DELETE USING (true);
 
 -- Create policies for shifts table
-CREATE POLICY "Users can view own shifts" ON shifts
-  FOR SELECT USING (auth.uid()::text = user_id);
+CREATE POLICY "Shifts select all" ON shifts
+  FOR SELECT USING (true);
 
-CREATE POLICY "Users can insert own shifts" ON shifts
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+CREATE POLICY "Shifts insert all" ON shifts
+  FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can update own shifts" ON shifts
-  FOR UPDATE USING (auth.uid()::text = user_id);
+CREATE POLICY "Shifts update all" ON shifts
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Shifts delete all" ON shifts
+  FOR DELETE USING (true);
 
 -- Create policies for active_shifts table
-CREATE POLICY "Users can view own active shift" ON active_shifts
-  FOR SELECT USING (auth.uid()::text = user_id);
+CREATE POLICY "Active shifts select all" ON active_shifts
+  FOR SELECT USING (true);
 
-CREATE POLICY "Users can manage own active shift" ON active_shifts
-  FOR ALL USING (auth.uid()::text = user_id);
+CREATE POLICY "Active shifts insert all" ON active_shifts
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Active shifts update all" ON active_shifts
+  FOR UPDATE USING (true);
+
+CREATE POLICY "Active shifts manage all" ON active_shifts
+  FOR DELETE USING (true);
 
 -- Insert your admin user (replace with your actual values)
 INSERT INTO users (id, name, email, password, is_admin, department)

@@ -8,6 +8,9 @@ DROP POLICY IF EXISTS "shifts_select" ON shifts;
 DROP POLICY IF EXISTS "shifts_insert" ON shifts;
 DROP POLICY IF EXISTS "shifts_update" ON shifts;
 DROP POLICY IF EXISTS "shifts_delete" ON shifts;
+DROP POLICY IF EXISTS "Users can view own shifts" ON shifts;
+DROP POLICY IF EXISTS "Users can insert own shifts" ON shifts;
+DROP POLICY IF EXISTS "Users can update own shifts" ON shifts;
 
 -- Create simple permissive policies
 -- Since this is an internal company app with authenticated users,
@@ -38,6 +41,8 @@ DROP POLICY IF EXISTS "users_select_own" ON users;
 DROP POLICY IF EXISTS "users_update_own" ON users;
 DROP POLICY IF EXISTS "users_insert_admin" ON users;
 DROP POLICY IF EXISTS "users_delete_admin" ON users;
+DROP POLICY IF EXISTS "Users can view own record" ON users;
+DROP POLICY IF EXISTS "Users can update own record" ON users;
 
 CREATE POLICY "users_select_all" ON users 
   FOR SELECT 
@@ -60,6 +65,8 @@ DROP POLICY IF EXISTS "active_shifts_select" ON active_shifts;
 DROP POLICY IF EXISTS "active_shifts_insert" ON active_shifts;
 DROP POLICY IF EXISTS "active_shifts_update" ON active_shifts;
 DROP POLICY IF EXISTS "active_shifts_delete" ON active_shifts;
+DROP POLICY IF EXISTS "Users can view own active shift" ON active_shifts;
+DROP POLICY IF EXISTS "Users can manage own active shift" ON active_shifts;
 
 CREATE POLICY "active_shifts_select_all" ON active_shifts 
   FOR SELECT 
@@ -76,3 +83,7 @@ CREATE POLICY "active_shifts_update_all" ON active_shifts
 CREATE POLICY "active_shifts_delete_all" ON active_shifts 
   FOR DELETE 
   USING (true);
+
+-- Ensure start_time column exists in active_shifts
+-- (missing in older setup-database.sql versions)
+ALTER TABLE active_shifts ADD COLUMN IF NOT EXISTS start_time BIGINT;

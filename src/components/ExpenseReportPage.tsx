@@ -268,12 +268,9 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
         {/* Save/Submit buttons */}
         {saveMessage && <div className={saveMessage.includes('fail') || saveMessage.includes('נכשל') ? 'error-box' : 'success-box'} style={{ marginBottom: 16 }}>{saveMessage}</div>}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => handleSave('draft')} disabled={isSaving || isSubmitted} className="btn-green" style={{ minWidth: 180 }}>
+          <button onClick={() => handleSave('submitted')} disabled={isSaving || isSubmitted} className="btn-green" style={{ minWidth: 220 }}>
             {isSaving ? <div className="spinner" style={{ width: 20, height: 20 }} /> : null}
-            {t.saveExpenseReport}
-          </button>
-          <button onClick={() => handleSave('submitted')} disabled={isSaving || isSubmitted} className="btn-green" style={{ minWidth: 180, background: '#f97316', boxShadow: '0 0 20px rgba(249,115,22,.2)' }}>
-            {t.submitExpenseReport}
+            {t.sendExpenseReport}
           </button>
         </div>
       </div>

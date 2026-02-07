@@ -40,13 +40,21 @@ export const generateExcel = (options: ExportOptions): void => {
   
   const isHebrew = language === 'he';
   
+  // Sort shifts by employee name (alphabetically), then by date
+  const sortedShifts = [...shifts].sort((a, b) => {
+    const nameA = (users?.find(u => u.id === a.userId)?.name || a.userName).toLowerCase();
+    const nameB = (users?.find(u => u.id === b.userId)?.name || b.userName).toLowerCase();
+    if (nameA !== nameB) return nameA.localeCompare(nameB);
+    return a.date.localeCompare(b.date);
+  });
+
   // Headers based on language
   const headers = isHebrew 
     ? ['שם עובד', 'תאריך', 'כניסה', 'יציאה', 'הפסקה (דקות)', 'משך נטו', 'הערות', 'מחלקה']
     : ['Employee', 'Date', 'Check In', 'Check Out', 'Break (min)', 'Net Duration', 'Notes', 'Department'];
   
-  // Map shifts to rows
-  const rows = shifts.map(shift => {
+  // Map shifts to rows (sorted by employee name)
+  const rows = sortedShifts.map(shift => {
     const user = users?.find(u => u.id === shift.userId);
     const breakMins = shift.breakMinutes || 0;
     // shift.duration is already net of breaks (set in Home.tsx as netMinutes),
@@ -77,8 +85,8 @@ export const generateExcel = (options: ExportOptions): void => {
   
   // Calculate totals
   // shift.duration is already net of breaks, so use it directly
-  const totalWorkingDays = new Set(shifts.map(s => `${s.userId}-${s.date}`)).size;
-  const totalMinutes = shifts.reduce((sum, s) => sum + s.duration, 0);
+  const totalWorkingDays = new Set(sortedShifts.map(s => `${s.userId}-${s.date}`)).size;
+  const totalMinutes = sortedShifts.reduce((sum, s) => sum + s.duration, 0);
   const totalHours = formatDuration(totalMinutes);
   
   // Add summary rows

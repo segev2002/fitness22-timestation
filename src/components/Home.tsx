@@ -288,13 +288,13 @@ const Home = ({ user }: HomeProps) => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2 px-4">
           {!isInShift ? (
             <button
               onClick={handleCheckIn}
-              className="bg-[#39FF14] text-[#0D0D0D] px-10 sm:px-16 md:px-20 py-4 md:py-5 rounded-lg text-xl md:text-2xl font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-105 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] flex items-center gap-3 md:gap-4"
+              className="w-full sm:w-auto bg-[#39FF14] text-[#0D0D0D] px-12 sm:px-16 md:px-20 py-6 sm:py-5 md:py-5 rounded-xl sm:rounded-lg text-2xl sm:text-xl md:text-2xl font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-105 shadow-xl shadow-[#39FF14]/40 hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] flex items-center justify-center gap-4"
             >
-              <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 sm:w-6 sm:h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
               {t.checkIn}

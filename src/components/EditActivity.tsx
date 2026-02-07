@@ -291,8 +291,8 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
   const days = generateCalendarDays();
 
   return (
-    <div className="w-full min-h-[calc(100vh-72px)]" style={{ backgroundColor: 'var(--f22-background)' }}>
-      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 min-h-[calc(100vh-72px)]">
+    <div className="w-full min-h-[calc(100vh-72px)] flex flex-col" style={{ backgroundColor: 'var(--f22-background)' }}>
+      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 min-h-[calc(100vh-72px)] flex flex-col">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
           <div className="flex items-center gap-3">
@@ -351,7 +351,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="select-none flex-1">
+        <div className="select-none flex-1 flex flex-col">
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
             {t.days_short.map((day: string) => (
@@ -362,7 +362,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
           </div>
 
           {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 flex-1">
             {days.map((day, index) => {
               const isWeekend = day.date.getDay() === 5 || day.date.getDay() === 6;
               // Selected days: use gray in both modes for visibility
@@ -397,7 +397,7 @@ const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
                   onMouseDown={() => handleDayMouseDown(day.date, day.isCurrentMonth)}
                   onMouseEnter={() => handleDayMouseEnter(day.date, day.isCurrentMonth)}
                   className={`
-                    relative min-h-[40px] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-lg transition-all
+                    relative min-h-[calc((100vh-300px)/6)] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-lg transition-all
                     ${day.isSelected ? 'shadow-lg scale-105' : ''}
                     ${!day.isCurrentMonth || isFutureDate ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
                   `}

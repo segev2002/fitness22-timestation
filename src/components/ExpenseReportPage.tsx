@@ -66,8 +66,8 @@ const ExpenseItemRow = ({
   };
 
   return (
-    <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 mb-4 border border-[var(--f22-border)]">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+    <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 mb-5 sm:mb-4 border border-[var(--f22-border)]">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-4 items-center">
         {/* Quantity */}
         <div className="md:col-span-1">
           <label className="text-xs text-[var(--f22-text-muted)] mb-1 block md:hidden">{t.quantity}</label>
@@ -482,7 +482,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     onExchangeRateChange?: (rate: number) => void;
     showExchangeRate?: boolean;
   }) => (
-    <div className="mb-10">
+    <div className="mb-12 sm:mb-10">
       <h3 className="text-xl font-bold mb-6 text-[var(--f22-text)] flex items-center gap-3">
         <span className="w-10 h-10 rounded-lg bg-[#39FF14] flex items-center justify-center text-[#0D0D0D] text-lg">
           {CURRENCY_SYMBOLS[currency]}
@@ -567,10 +567,10 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   return (
     <div className={`min-h-screen bg-[var(--f22-bg)] ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="w-full h-full px-4 sm:px-6 md:px-8 py-8">
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-10 sm:space-y-8">
           
           {/* Header Card */}
-          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-5 sm:p-8">
             {/* Title centered */}
             <h1 className="text-3xl font-bold text-[var(--f22-text)] text-center mb-8">{t.expenseReport}</h1>
               
@@ -601,8 +601,8 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             </div>
             
             {/* Employee and date info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-[var(--f22-border)]">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-6 pt-8 border-t border-[var(--f22-border)]">
+              <div className="space-y-5 sm:space-y-4">
                 <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <span className={`text-[var(--f22-text-muted)] w-36 ${isRTL ? 'text-right' : 'text-left'}`}>{t.employee}:</span>
                   <span className={`font-semibold text-[var(--f22-text)] text-lg ${isRTL ? 'text-right' : 'text-left'}`}>{user.name}</span>
@@ -621,7 +621,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
             </div>
             
             {/* Checked/Approved by */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-[var(--f22-border)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-6 mt-8 pt-8 border-t border-[var(--f22-border)]">
               <div className={`grid items-center gap-4 ${isRTL ? 'grid-cols-[1fr,140px]' : 'grid-cols-[140px,1fr]'}`}>
                 <span className={`text-[var(--f22-text-muted)] ${isRTL ? 'text-right' : 'text-left'}`}>{t.checkedBy}:</span>
                 <input
@@ -646,7 +646,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           </div>
           
           {/* Expense sections */}
-          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-6 sm:p-8">
+          <div className="bg-[var(--f22-surface)] rounded-lg shadow-lg border border-[var(--f22-border)] p-5 sm:p-8">
             {/* NIS Expenses */}
             <ExpenseSection
               currency="NIS"
@@ -702,12 +702,15 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
           )}
           
           {/* Action button - Submit only */}
-          <div className="flex justify-end pb-8">
+          <div className="flex justify-center pb-8">
             <button
               onClick={() => handleSave(true)}
               disabled={isSaving || (report?.status !== 'draft' && report?.status !== undefined)}
-              className="px-10 py-4 bg-[#39FF14] text-[#0D0D0D] rounded-lg font-bold hover:bg-[#39FF14] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg shadow-[#39FF14]/30"
+              className="w-full sm:w-auto px-12 sm:px-16 py-5 sm:py-6 bg-[#39FF14] text-[#0D0D0D] rounded-xl font-bold hover:bg-[#39FF14] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xl sm:text-2xl shadow-xl shadow-[#39FF14]/30 flex items-center justify-center gap-3"
             >
+              <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {isSaving ? '...' : t.submitExpenseReport}
             </button>
           </div>

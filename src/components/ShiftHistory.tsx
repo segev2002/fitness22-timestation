@@ -178,7 +178,92 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
           <p className="text-[var(--f22-text-muted)] opacity-70 text-sm mt-1">{t.shiftsWillAppear}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <>{/* Mobile Card Layout */}
+        <div className="md:hidden space-y-3">
+          {sortedShifts.map((shift) => {
+            const date = new Date(shift.date);
+            const checkInTime = formatTime(shift.checkIn);
+            const checkOutTime = shift.checkOut ? formatTime(shift.checkOut) : '-';
+            const breakMins = shift.breakMinutes || 0;
+            let displayNote = shift.note || '';
+            if (displayNote === t.workFromOffice || displayNote === 'Work from Office' || displayNote === 'עבודה מהמשרד') {
+              displayNote = '';
+            }
+
+            return (
+              <div key={shift.id} className="bg-[var(--f22-surface-light)] rounded-xl border-2 border-[var(--f22-border)] p-4 space-y-3">
+                {/* Top row: Date + Actions */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[var(--f22-text)] font-bold text-base">{formatDate(date)}</div>
+                    <div className="text-[var(--f22-text-muted)] text-xs">{getDayName(date)}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEdit(shift)}
+                      className="p-2.5 text-amber-400 hover:bg-amber-500/20 rounded-lg transition-all"
+                      title={t.edit}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(shift.id)}
+                      className="p-2.5 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                      title={t.delete}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Employee */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--f22-text-muted)] text-xs font-medium w-16">{t.employee}</span>
+                  <span className="bg-[#39FF14] text-[#0D0D0D] px-3 py-1.5 rounded-lg text-sm font-semibold">
+                    {shift.userName}
+                  </span>
+                </div>
+
+                {/* Check-in / Check-out row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] p-3 text-center">
+                    <div className="text-[var(--f22-text-muted)] text-xs mb-1">{t.checkInTime}</div>
+                    <span className="text-[#0D0D0D] font-bold bg-[#39FF14] px-3 py-1.5 rounded-lg text-sm inline-block">{checkInTime}</span>
+                  </div>
+                  <div className="bg-[var(--f22-surface)] rounded-lg border border-[var(--f22-border)] p-3 text-center">
+                    <div className="text-[var(--f22-text-muted)] text-xs mb-1">{t.checkOutTime}</div>
+                    <span className="text-red-400 font-bold bg-red-500/10 px-3 py-1.5 rounded-lg text-sm inline-block">{checkOutTime}</span>
+                  </div>
+                </div>
+
+                {/* Duration + Break row */}
+                <div className="flex items-center justify-between border-t border-[var(--f22-border)] pt-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[var(--f22-text-muted)] text-xs">{t.duration}:</span>
+                    <span className="text-[var(--f22-text)] font-semibold text-sm">{formatDuration(shift.duration)}</span>
+                  </div>
+                  {breakMins > 0 && (
+                    <span className="bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-lg text-xs font-medium">{t.breakMinutes}: {breakMins}m</span>
+                  )}
+                </div>
+
+                {/* Note */}
+                {displayNote && (
+                  <div className="border-t border-[var(--f22-border)] pt-3">
+                    <span className="text-[var(--f22-text-muted)] text-xs">{displayNote}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table Layout */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="bg-[var(--f22-surface-light)] border-b border-[var(--f22-border)]">
@@ -198,7 +283,6 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
                 const checkInTime = formatTime(shift.checkIn);
                 const checkOutTime = shift.checkOut ? formatTime(shift.checkOut) : '-';
                 const breakMins = shift.breakMinutes || 0;
-                // Simplify note display: hide "Work from Office" type notes
                 let displayNote = shift.note || '';
                 if (displayNote === t.workFromOffice || displayNote === 'Work from Office' || displayNote === 'עבודה מהמשרד') {
                   displayNote = '';
@@ -256,6 +340,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Edit Modal */}

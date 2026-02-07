@@ -3,6 +3,7 @@ import type { User, ExpenseReport, ExpenseItem, Currency } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { supabaseExpenses, supabaseUsers } from '../utils/supabase';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AdminExpenseReportsProps {
   user: User;
@@ -213,15 +214,74 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     `;
 
     document.body.appendChild(container);
-    await doc.html(container, {
-      x: 24,
-      y: 24,
-      html2canvas: { scale: 1 },
-      callback: () => {
-        doc.save(`expense_report_${report.userName.replace(/\s+/g, '_')}_${report.month}.pdf`);
-        document.body.removeChild(container);
-      },
-    });
+
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 24;
+      const contentWidth = pageWidth - margin * 2;
+      const contentHeight = pageHeight - margin * 2;
+      const scale = contentWidth / canvas.width;
+      const sliceHeight = contentHeight / scale;
+
+      let renderedHeight = 0;
+      let pageIndex = 0;
+
+      while (renderedHeight < canvas.height) {
+        const sliceHeightPx = Math.min(sliceHeight, canvas.height - renderedHeight);
+
+        if (pageIndex > 0) {
+          doc.addPage();
+        }
+
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeightPx;
+        const sliceContext = sliceCanvas.getContext('2d');
+
+        if (sliceContext) {
+          sliceContext.drawImage(
+            canvas,
+            0,
+            renderedHeight,
+            canvas.width,
+            sliceHeightPx,
+            0,
+            0,
+            canvas.width,
+            sliceHeightPx,
+          );
+
+          const sliceData = sliceCanvas.toDataURL('image/png');
+
+          doc.addImage(
+            sliceData,
+            'PNG',
+            margin,
+            margin,
+            contentWidth,
+            sliceHeightPx * scale,
+          );
+        }
+
+        renderedHeight += sliceHeightPx;
+        pageIndex += 1;
+      }
+
+      doc.save(`expense_report_${report.userName.replace(/\s+/g, '_')}_${report.month}.pdf`);
+    } finally {
+      document.body.removeChild(container);
+    }
   }, []);
   
   // Generate month options

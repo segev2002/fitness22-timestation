@@ -114,6 +114,78 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
   const formatCurrency = (value: number, currency: Currency) => {
     return `${CURRENCY_SYMBOLS[currency]}${value.toFixed(2)}`;
   };
+
+  const getInvoiceItems = (report: ExpenseReport) => (
+    [...report.itemsNIS, ...report.itemsUSD, ...report.itemsEUR]
+      .filter(item => item.invoiceUrl || item.invoiceBase64)
+  );
+
+  const getInvoiceExtension = (url: string) => {
+    if (url.startsWith('data:')) {
+      const match = url.match(/^data:([^;]+);/);
+      if (match?.[1]) {
+        const mime = match[1];
+        if (mime.includes('pdf')) return 'pdf';
+        if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+        if (mime.includes('png')) return 'png';
+      }
+      return 'png';
+    }
+
+    try {
+      const parsed = new URL(url);
+      const ext = parsed.pathname.split('.').pop();
+      if (ext && ext.length <= 5) return ext;
+    } catch {
+      // ignore
+    }
+
+    if (url.toLowerCase().includes('pdf')) return 'pdf';
+    return 'png';
+  };
+
+  const downloadInvoice = async (url: string, filename: string) => {
+    if (url.startsWith('data:')) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      return;
+    }
+
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleDownloadInvoices = async (report: ExpenseReport) => {
+    const invoiceItems = getInvoiceItems(report);
+    if (invoiceItems.length === 0) return;
+
+    const baseName = report.userName.replace(/\s+/g, '_');
+    for (let index = 0; index < invoiceItems.length; index += 1) {
+      const item = invoiceItems[index];
+      const url = item.invoiceBase64 || item.invoiceUrl;
+      if (!url) continue;
+      const extension = getInvoiceExtension(url);
+      const filename = `invoice_${baseName}_${report.month}_${index + 1}.${extension}`;
+      await downloadInvoice(url, filename);
+    }
+  };
+
+  const handleDownloadInvoiceItem = async (report: ExpenseReport, item: ExpenseItem, index: number) => {
+    const url = item.invoiceBase64 || item.invoiceUrl;
+    if (!url) return;
+    const baseName = report.userName.replace(/\s+/g, '_');
+    const extension = getInvoiceExtension(url);
+    const filename = `invoice_${baseName}_${report.month}_${index + 1}.${extension}`;
+    await downloadInvoice(url, filename);
+  };
   
   // Generate PDF for a report
   const generatePDF = useCallback(async (report: ExpenseReport) => {
@@ -430,6 +502,17 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                             </svg>
                             PDF
                           </button>
+                          {getInvoiceItems(report).length > 0 && (
+                            <button
+                              onClick={() => handleDownloadInvoices(report)}
+                              className="px-4 py-2.5 min-h-[44px] text-sm bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-lg hover:border-[#39FF14] border border-[var(--f22-border)] transition-colors flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M14 14l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {t.viewInvoice}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleDeleteReport(report.id)}
                             className="px-4 py-2.5 min-h-[44px] text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
@@ -515,19 +598,18 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
                       </div>
                       
                       {/* Invoices section */}
-                      {[...report.itemsNIS, ...report.itemsUSD, ...report.itemsEUR].some(i => i.invoiceUrl || i.invoiceBase64) && (
+                      {getInvoiceItems(report).length > 0 && (
                         <div className="mt-4 pt-4 border-t border-[var(--f22-border)]">
                           <h5 className="text-sm font-medium text-[var(--f22-text-muted)] mb-2">Invoices</h5>
                           <div className="flex flex-wrap gap-2">
-                            {[...report.itemsNIS, ...report.itemsUSD, ...report.itemsEUR]
-                              .filter(i => i.invoiceUrl || i.invoiceBase64)
-                              .map(item => (
+                            {getInvoiceItems(report)
+                              .map((item, index) => (
                                 <button
                                   key={item.id}
-                                  onClick={() => window.open(item.invoiceBase64 || item.invoiceUrl, '_blank')}
+                                  onClick={() => handleDownloadInvoiceItem(report, item, index)}
                                   className="px-3 py-1 text-xs bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded hover:border-[#39FF14] transition-colors flex items-center gap-1"
                                 >
-                                  📎 {item.description.substring(0, 20)}...
+                                  📎 {item.description.substring(0, 20)}{item.description.length > 20 ? '...' : ''}
                                 </button>
                               ))}
                           </div>

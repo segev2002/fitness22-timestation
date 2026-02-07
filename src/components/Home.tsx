@@ -292,9 +292,9 @@ const Home = ({ user }: HomeProps) => {
           {!isInShift ? (
             <button
               onClick={handleCheckIn}
-              className="w-full sm:w-auto bg-[#39FF14] text-[#0D0D0D] px-12 sm:px-16 md:px-20 py-6 sm:py-5 md:py-5 rounded-xl sm:rounded-lg text-2xl sm:text-xl md:text-2xl font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-105 shadow-xl shadow-[#39FF14]/40 hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] flex items-center justify-center gap-4"
+              className="w-full sm:w-auto bg-[#39FF14] text-[#0D0D0D] px-12 sm:px-16 md:px-20 py-8 sm:py-6 md:py-5 rounded-2xl sm:rounded-lg text-3xl sm:text-xl md:text-2xl font-bold hover:bg-[var(--f22-green)] transition-all transform hover:scale-105 shadow-xl shadow-[#39FF14]/40 hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] flex items-center justify-center gap-4"
             >
-              <svg className="w-8 h-8 sm:w-6 sm:h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-9 h-9 sm:w-6 sm:h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
               {t.checkIn}
@@ -333,44 +333,47 @@ const Home = ({ user }: HomeProps) => {
           {t.currentMonthActivity} - {currentMonth}
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
           {/* Total Shifts */}
-          <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-[var(--f22-surface-light)] rounded-lg p-2.5 sm:p-4 md:p-6 text-center border border-[var(--f22-border)]">
+            <div className="bg-[#39FF14] w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-1.5 sm:mb-3 md:mb-4">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.totalShifts}</p>
-            <p className="text-xs md:text-sm text-[var(--f22-text-muted)] mt-2">{t.totalShifts}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.totalShifts}</p>
+            <p className="text-[10px] sm:text-xs md:text-sm text-[var(--f22-text-muted)] mt-1 sm:mt-2">{t.totalShifts}</p>
           </div>
 
           {/* Total Hours */}
-          <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-[var(--f22-surface-light)] rounded-lg p-2.5 sm:p-4 md:p-6 text-center border border-[var(--f22-border)]">
+            <div className="bg-[#39FF14] w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-1.5 sm:mb-3 md:mb-4">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.totalHours}</p>
-            <p className="text-xs md:text-sm text-[var(--f22-text-muted)] mt-2">{t.totalHours}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.totalHours}</p>
+            <p className="text-[10px] sm:text-xs md:text-sm text-[var(--f22-text-muted)] mt-1 sm:mt-2">{t.totalHours}</p>
           </div>
 
           {/* Average Shift */}
-          <div className="bg-[var(--f22-surface-light)] rounded-lg p-4 md:p-6 text-center border border-[var(--f22-border)]">
-            <div className="bg-[#39FF14] w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-3 md:mb-4">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-[var(--f22-surface-light)] rounded-lg p-2.5 sm:p-4 md:p-6 text-center border border-[var(--f22-border)]">
+            <div className="bg-[#39FF14] w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center mx-auto mb-1.5 sm:mb-3 md:mb-4">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.averageShift}</p>
-            <p className="text-xs md:text-sm text-[var(--f22-text-muted)] mt-2">{t.averageShift}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--f22-text)]">{stats.averageShift}</p>
+            <p className="text-[10px] sm:text-xs md:text-sm text-[var(--f22-text-muted)] mt-1 sm:mt-2">{t.averageShift}</p>
           </div>
         </div>
       </div>
 
       {/* Recent Shifts */}
       <ShiftHistory shifts={shifts} onUpdate={loadShifts} />
+
+      {/* Bottom border spacer */}
+      <div className="h-2 bg-[#39FF14] rounded-t-none" />
     </div>
   );
 };

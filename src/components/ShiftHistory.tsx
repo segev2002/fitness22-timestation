@@ -157,7 +157,7 @@ const ShiftHistory = ({ shifts, onUpdate }: ShiftHistoryProps) => {
   const textAlign = isRTL ? 'text-right' : 'text-left';
 
   return (
-    <div className="bg-[var(--f22-surface)] border-t border-[var(--f22-border)] px-4 sm:px-6 md:px-8 py-6 md:py-8">
+    <div className="bg-[var(--f22-surface)] border-t border-[var(--f22-border)] px-4 sm:px-6 md:px-8 py-6 md:py-8 pb-10 sm:pb-8">
       <div className="flex items-center gap-3 mb-6 md:mb-8">
         <div className="p-2 md:p-2.5 bg-[#39FF14] rounded-lg">
           <svg className="w-5 h-5 md:w-6 md:h-6 text-[#0D0D0D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

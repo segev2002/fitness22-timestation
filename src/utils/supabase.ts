@@ -28,6 +28,22 @@ export const setSupabaseUserId = (userId: string | null): void => {
  * This should be called before any database operation to ensure
  * RLS policies can identify the current user.
  */
+/**
+ * SECURITY WARNING — RLS BYPASS RISK
+ * ====================================
+ * The current RLS model relies on `current_setting('app.current_user_id')` which
+ * is set via the `set_current_user` RPC. Because the app uses the Supabase **anon**
+ * key (visible in the browser), any user can call `set_current_user` with an
+ * arbitrary user ID and then read/modify/delete any other user's data.
+ *
+ * RECOMMENDED MIGRATION:
+ * 1. Switch to Supabase Auth (email/password sign-in via `supabase.auth.signInWithPassword`).
+ * 2. Update RLS policies to use `auth.uid()` instead of `current_setting(...)`.
+ * 3. Remove the `set_current_user` RPC entirely.
+ *
+ * Until the migration is complete, this app should NOT be considered secure
+ * against malicious authenticated users.
+ */
 export const setSupabaseUserContext = async (userId: string): Promise<void> => {
   if (!supabase) return;
   
@@ -249,8 +265,7 @@ export const supabaseShifts = {
     const { error } = await supabase
       .from('shifts')
       .update(shiftToDb(shift))
-      .eq('user_id', shift.userId)
-      .eq('date', shift.date);
+      .eq('id', shift.id);
     
     if (error) {
       console.error('Supabase update error:', error);

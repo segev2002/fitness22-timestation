@@ -53,49 +53,61 @@ const Home = ({ user }: HomeProps) => {
   }, [loadShifts]);
 
   const handleCheckIn = async () => {
-    const now = new Date();
-    const active: ActiveShift = { userId: user.id, userName: user.name, checkIn: now.toISOString(), startTime: now.getTime() };
-    setActiveShift(active);
-    if (isSupabaseConfigured()) { await supabaseActiveShift.set(active, user.id); }
-    else { saveActiveShift(active, user.id); }
+    try {
+      const now = new Date();
+      const active: ActiveShift = { userId: user.id, userName: user.name, checkIn: now.toISOString(), startTime: now.getTime() };
+      setActiveShift(active);
+      if (isSupabaseConfigured()) { await supabaseActiveShift.set(active, user.id); }
+      else { saveActiveShift(active, user.id); }
+    } catch (err) {
+      console.error('handleCheckIn error:', err);
+    }
   };
 
   const handleCheckOut = async () => {
     if (!activeShift) return;
-    const now = new Date();
-    const checkInDate = new Date(activeShift.checkIn);
-    const totalMinutes = Math.floor((now.getTime() - checkInDate.getTime()) / 60000);
-    const netMinutes = Math.max(totalMinutes - breakMinutes, 0);
-    const dateStr = checkInDate.toISOString().split('T')[0];
-    const noteWithType = dayType !== 'office' ? `[${dayType}] ${note}`.trim() : note;
+    try {
+      const now = new Date();
+      const checkInDate = new Date(activeShift.checkIn);
+      const totalMinutes = Math.floor((now.getTime() - checkInDate.getTime()) / 60000);
+      const netMinutes = Math.max(totalMinutes - breakMinutes, 0);
+      const dateStr = checkInDate.toISOString().split('T')[0];
+      const noteWithType = dayType !== 'office' ? `[${dayType}] ${note}`.trim() : note;
 
-    const shift: Shift = {
-      id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user.id, userName: user.name, date: dateStr,
-      checkIn: activeShift.checkIn, checkOut: now.toISOString(),
-      note: noteWithType, duration: netMinutes, breakMinutes: breakMinutes || undefined,
-    };
+      const shift: Shift = {
+        id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id, userName: user.name, date: dateStr,
+        checkIn: activeShift.checkIn, checkOut: now.toISOString(),
+        note: noteWithType, duration: netMinutes, breakMinutes: breakMinutes || undefined,
+      };
 
-    addShift(shift);
-    setActiveShift(null);
-    if (isSupabaseConfigured()) { await supabaseActiveShift.set(null, user.id); }
-    else { saveActiveShift(null, user.id); }
-    setNote(''); setDayType('office'); setBreakMinutes(0);
-    loadShifts();
+      addShift(shift);
+      setActiveShift(null);
+      if (isSupabaseConfigured()) { await supabaseActiveShift.set(null, user.id); }
+      else { saveActiveShift(null, user.id); }
+      setNote(''); setDayType('office'); setBreakMinutes(0);
+      loadShifts();
+    } catch (err) {
+      console.error('handleCheckOut error:', err);
+    }
   };
 
   const handleSickDay = async () => {
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const shift: Shift = {
-      id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user.id, userName: user.name, date: dateStr,
-      checkIn: new Date(today.setHours(9, 0, 0)).toISOString(),
-      checkOut: new Date(today.setHours(17, 0, 0)).toISOString(),
-      note: `[sickday] ${t.sickDayNote}`, duration: 480,
-    };
-    addShift(shift);
-    loadShifts();
+    try {
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      const shift: Shift = {
+        id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id, userName: user.name, date: dateStr,
+        checkIn: new Date(today.setHours(9, 0, 0)).toISOString(),
+        checkOut: new Date(today.setHours(17, 0, 0)).toISOString(),
+        note: `[sickday] ${t.sickDayNote}`, duration: 480,
+      };
+      addShift(shift);
+      loadShifts();
+    } catch (err) {
+      console.error('handleSickDay error:', err);
+    }
   };
 
   const calculateStats = () => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { validateAdminAsync, DEPARTMENTS, isPrimaryAdmin } from '../utils/auth';
+import { validateAdminAsync, DEPARTMENTS, isPrimaryAdmin, adminCreateUser } from '../utils/auth';
 import { supabaseShifts, supabaseUsers, supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
 import { updateShift, deleteShift } from '../utils/storage';
@@ -89,37 +89,54 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
 
   const handleCreateUser = async () => {
     if (!newUserName || !newUserEmail || !newUserPassword) return;
-    const newUser: User = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: newUserName, email: newUserEmail.toLowerCase(), password: newUserPassword,
-      createdAt: new Date().toISOString(), department: newUserDept || undefined,
-    };
-    await supabaseUsers.create(newUser);
-    setShowAddUser(false);
-    setNewUserName(''); setNewUserEmail(''); setNewUserPassword(''); setNewUserDept('');
-    loadUsers();
+    try {
+      const result = await adminCreateUser(user, newUserName, newUserEmail, newUserPassword, newUserDept || undefined);
+      if (!result.success) {
+        alert(result.error === 'emailExists' ? t.emailExists : (result.error || t.profileSaveFailed));
+        return;
+      }
+      setShowAddUser(false);
+      setNewUserName(''); setNewUserEmail(''); setNewUserPassword(''); setNewUserDept('');
+      loadUsers();
+    } catch (err) {
+      console.error('handleCreateUser error:', err);
+      alert(t.profileSaveFailed);
+    }
   };
 
   const handleToggleAdmin = async (u: User) => {
     if (isPrimaryAdmin(u.email)) return;
-    const updated = { ...u, isAdmin: !u.isAdmin };
-    await supabaseUsers.upsert(updated);
-    loadUsers();
+    try {
+      const updated = { ...u, isAdmin: !u.isAdmin };
+      await supabaseUsers.upsert(updated);
+      loadUsers();
+    } catch (err) {
+      console.error('handleToggleAdmin error:', err);
+    }
   };
 
   const handleUpdateDepartment = async (u: User, dept: string) => {
-    const updated = { ...u, department: dept || undefined };
-    await supabaseUsers.upsert(updated);
-    loadUsers();
+    try {
+      const updated = { ...u, department: dept || undefined };
+      await supabaseUsers.upsert(updated);
+      loadUsers();
+    } catch (err) {
+      console.error('handleUpdateDepartment error:', err);
+    }
   };
 
   const handleDeleteUser = async (u: User) => {
     if (isPrimaryAdmin(u.email)) return;
     if (u.id === user.id) return;
     if (!confirm(t.confirmDeleteUser)) return;
-    await supabaseUsers.deleteUserShifts(u.id);
-    await supabaseUsers.delete(u.id);
-    loadUsers();
+    try {
+      await supabaseUsers.deleteUserShifts(u.id);
+      await supabaseUsers.delete(u.id);
+      loadUsers();
+    } catch (err) {
+      console.error('handleDeleteUser error:', err);
+      alert(t.profileSaveFailed);
+    }
   };
 
   const handleExportExcel = () => {

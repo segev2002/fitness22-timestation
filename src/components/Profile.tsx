@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { supabaseUsers } from '../utils/supabase';
 import { supabaseShifts } from '../utils/supabase';
+import { changeUserPassword } from '../utils/auth';
 import type { User } from '../types';
 
 interface ProfileProps {
@@ -70,12 +71,18 @@ const Profile = ({ user, onUserUpdate }: ProfileProps) => {
   const handlePasswordChange = async () => {
     setPasswordError('');
     setPasswordSuccess('');
-    if (currentPassword !== user.password) { setPasswordError(t.incorrectPassword); return; }
     if (newPassword.length < 6) { setPasswordError(t.passwordTooShort); return; }
     if (newPassword !== confirmPassword) { setPasswordError(t.passwordMismatch); return; }
     try {
+      // Use changeUserPassword from auth.ts which validates against the DB
+      const result = await changeUserPassword(user.id, currentPassword, newPassword);
+      if (!result.success) {
+        if (result.error === 'incorrectPassword') setPasswordError(t.incorrectPassword);
+        else if (result.error === 'passwordTooShort') setPasswordError(t.passwordTooShort);
+        else setPasswordError(t.profileSaveFailed);
+        return;
+      }
       const updated: User = { ...user, password: newPassword };
-      await supabaseUsers.upsert(updated);
       onUserUpdate(updated);
       setPasswordSuccess(t.passwordChanged);
       setTimeout(() => { setShowPasswordChange(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordSuccess(''); }, 1500);

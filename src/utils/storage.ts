@@ -8,9 +8,59 @@ import {
 const SHIFTS_KEY = 'attendance_shifts';
 const ACTIVE_SHIFT_KEY = 'attendance_active_shift';
 
+// Safe localStorage wrapper to handle QuotaExceededError (e.g. mobile Safari 5MB limit)
+const safeSetItem = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.error(`localStorage.setItem failed for key "${key}":`, err);
+    return false;
+  }
+};
+
 // Check if we should use Supabase (configured)
 const shouldUseSupabase = (): boolean => {
   return isSupabaseConfigured();
+};
+
+// Retry wrapper for Supabase operations with exponential backoff
+const RETRY_KEY = 'attendance_pending_retries';
+
+interface PendingRetry {
+  op: 'add' | 'update' | 'delete' | 'deleteByDates';
+  payload: unknown;
+  timestamp: number;
+}
+
+const savePendingRetry = (retry: PendingRetry): void => {
+  try {
+    const pending: PendingRetry[] = JSON.parse(localStorage.getItem(RETRY_KEY) || '[]');
+    pending.push(retry);
+    safeSetItem(RETRY_KEY, JSON.stringify(pending));
+  } catch {
+    // Best effort
+  }
+};
+
+const supabaseWithRetry = async <T>(
+  operation: () => Promise<T>,
+  retries = 2,
+  delayMs = 1000,
+): Promise<T | null> => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(2, attempt)));
+      } else {
+        console.error('Supabase operation failed after retries:', err);
+        return null;
+      }
+    }
+  }
+  return null;
 };
 
 // Clean up duplicate shifts (keep only the latest one per user per date)
@@ -38,14 +88,14 @@ const localGetShifts = (): Shift[] => {
   
   // Save cleaned data back if there were duplicates
   if (cleanedShifts.length !== shifts.length) {
-    localStorage.setItem(SHIFTS_KEY, JSON.stringify(cleanedShifts));
+    safeSetItem(SHIFTS_KEY, JSON.stringify(cleanedShifts));
   }
   
   return cleanedShifts;
 };
 
 const localSaveShifts = (shifts: Shift[]): void => {
-  localStorage.setItem(SHIFTS_KEY, JSON.stringify(shifts));
+  safeSetItem(SHIFTS_KEY, JSON.stringify(shifts));
 };
 
 // Public API - uses Supabase when available, falls back to localStorage
@@ -73,11 +123,13 @@ export const addShift = (shift: Shift): void => {
   }
   localSaveShifts(shifts);
   
-  // Also save to Supabase if configured (async, non-blocking)
+  // Also save to Supabase if configured (async, with retry)
   if (shouldUseSupabase()) {
-    supabaseShifts.add(shift).catch(err => 
-      console.error('Supabase addShift failed:', err)
-    );
+    supabaseWithRetry(() => supabaseShifts.add(shift)).then(result => {
+      if (result === null) {
+        savePendingRetry({ op: 'add', payload: shift, timestamp: Date.now() });
+      }
+    });
   }
 };
 
@@ -90,11 +142,13 @@ export const updateShift = (updatedShift: Shift): void => {
     localSaveShifts(shifts);
   }
   
-  // Also update in Supabase if configured
+  // Also update in Supabase if configured (with retry)
   if (shouldUseSupabase()) {
-    supabaseShifts.update(updatedShift).catch(err => 
-      console.error('Supabase updateShift failed:', err)
-    );
+    supabaseWithRetry(() => supabaseShifts.update(updatedShift)).then(result => {
+      if (result === null) {
+        savePendingRetry({ op: 'update', payload: updatedShift, timestamp: Date.now() });
+      }
+    });
   }
 };
 
@@ -104,11 +158,13 @@ export const deleteShift = (shiftId: string): void => {
   const filtered = shifts.filter(s => s.id !== shiftId);
   localSaveShifts(filtered);
   
-  // Also delete from Supabase if configured
+  // Also delete from Supabase if configured (with retry)
   if (shouldUseSupabase()) {
-    supabaseShifts.delete(shiftId).catch(err => 
-      console.error('Supabase deleteShift failed:', err)
-    );
+    supabaseWithRetry(() => supabaseShifts.delete(shiftId)).then(result => {
+      if (result === null) {
+        savePendingRetry({ op: 'delete', payload: shiftId, timestamp: Date.now() });
+      }
+    });
   }
 };
 
@@ -120,11 +176,13 @@ export const deleteShiftsByDates = (userId: string, dates: string[]): number => 
   const deletedCount = shifts.length - filtered.length;
   localSaveShifts(filtered);
   
-  // Also delete from Supabase if configured
+  // Also delete from Supabase if configured (with retry)
   if (shouldUseSupabase()) {
-    supabaseShifts.deleteByDates(userId, dates).catch(err => 
-      console.error('Supabase deleteByDates failed:', err)
-    );
+    supabaseWithRetry(() => supabaseShifts.deleteByDates(userId, dates)).then(result => {
+      if (result === null) {
+        savePendingRetry({ op: 'deleteByDates', payload: { userId, dates }, timestamp: Date.now() });
+      }
+    });
   }
   
   return deletedCount;
@@ -138,7 +196,7 @@ const localGetActiveShift = (): ActiveShift | null => {
 
 const localSetActiveShift = (shift: ActiveShift | null): void => {
   if (shift) {
-    localStorage.setItem(ACTIVE_SHIFT_KEY, JSON.stringify(shift));
+    safeSetItem(ACTIVE_SHIFT_KEY, JSON.stringify(shift));
   } else {
     localStorage.removeItem(ACTIVE_SHIFT_KEY);
   }
@@ -151,10 +209,10 @@ export const getActiveShift = (): ActiveShift | null => {
 export const setActiveShift = (shift: ActiveShift | null, userId?: string): void => {
   localSetActiveShift(shift);
   
-  // Also save to Supabase if configured
+  // Also save to Supabase if configured (with retry)
   if (shouldUseSupabase() && userId) {
-    supabaseActiveShift.set(shift, userId).catch(err => 
-      console.error('Supabase setActiveShift failed:', err)
+    supabaseWithRetry(() => supabaseActiveShift.set(shift, userId)).catch(err =>
+      console.error('Supabase setActiveShift failed after retries:', err)
     );
   }
 };

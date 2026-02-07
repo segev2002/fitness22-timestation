@@ -49,7 +49,9 @@ export const generateExcel = (options: ExportOptions): void => {
   const rows = shifts.map(shift => {
     const user = users?.find(u => u.id === shift.userId);
     const breakMins = shift.breakMinutes || 0;
-    const netDuration = shift.duration - breakMins;
+    // shift.duration is already net of breaks (set in Home.tsx as netMinutes),
+    // so we use it directly — do NOT subtract breakMinutes again.
+    const netDuration = shift.duration;
     
     // Simplify note: if it's just "Work from Office", show empty
     let displayNote = shift.note || '';
@@ -74,8 +76,9 @@ export const generateExcel = (options: ExportOptions): void => {
   });
   
   // Calculate totals
+  // shift.duration is already net of breaks, so use it directly
   const totalWorkingDays = new Set(shifts.map(s => `${s.userId}-${s.date}`)).size;
-  const totalMinutes = shifts.reduce((sum, s) => sum + s.duration - (s.breakMinutes || 0), 0);
+  const totalMinutes = shifts.reduce((sum, s) => sum + s.duration, 0);
   const totalHours = formatDuration(totalMinutes);
   
   // Add summary rows

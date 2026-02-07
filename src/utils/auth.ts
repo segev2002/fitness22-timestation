@@ -1,9 +1,21 @@
 import type { User } from '../types';
 import { supabase, isSupabaseConfigured, supabaseUsers, supabaseShifts, setSupabaseUserId } from './supabase';
+import { hashPassword, verifyPassword } from './passwordHash';
 
 const USERS_KEY = 'attendance_users';
 const CURRENT_USER_KEY = 'attendance_current_user';
 const SESSION_TOKEN_KEY = 'attendance_session_token';
+
+// Safe localStorage wrapper to handle QuotaExceededError (e.g. mobile Safari 5MB limit)
+const safeSetItem = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.error(`localStorage.setItem failed for key "${key}":`, err);
+    return false;
+  }
+};
 
 // Primary admin email - this user is always admin and can manage all other admins
 // Change this to your desired admin email
@@ -26,7 +38,7 @@ const getSessionToken = (): string | null => {
 // Set session token
 const setSessionToken = (token: string | null): void => {
   if (token) {
-    localStorage.setItem(SESSION_TOKEN_KEY, token);
+    safeSetItem(SESSION_TOKEN_KEY, token);
   } else {
     localStorage.removeItem(SESSION_TOKEN_KEY);
   }
@@ -38,7 +50,7 @@ export const getUsers = (): User[] => {
 };
 
 export const saveUsers = (users: User[]): void => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  safeSetItem(USERS_KEY, JSON.stringify(users));
 };
 
 /**
@@ -143,7 +155,7 @@ export const setCurrentUser = (user: User | null): void => {
     
     // Store user with session token
     const userWithToken = { ...user, sessionToken };
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithToken));
+    safeSetItem(CURRENT_USER_KEY, JSON.stringify(userWithToken));
   } else {
     clearSession();
   }
@@ -195,7 +207,7 @@ export const validateSessionAsync = async (): Promise<User | null> => {
         saveUsers(users);
       }
       
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(validatedUser));
+      safeSetItem(CURRENT_USER_KEY, JSON.stringify(validatedUser));
       
       return dbUser;
     } catch (error) {
@@ -273,10 +285,17 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
         return { success: false, error: 'userDisabled' };
       }
 
-      // NOTE: this project stores plain-text passwords by default.
-      // If you add hashing later, update this check accordingly.
-      if (dbUser.password !== password) {
+      // Verify password (supports both hashed and legacy plain-text)
+      const { match, needsUpgrade } = await verifyPassword(password, dbUser.password);
+      if (!match) {
         return { success: false, error: 'incorrectPassword' };
+      }
+
+      // Auto-upgrade plain-text password to hash on successful login
+      if (needsUpgrade) {
+        const hashed = await hashPassword(password);
+        dbUser.password = hashed;
+        try { await supabaseUsers.upsert(dbUser); } catch { /* best effort */ }
       }
 
       // Sync localStorage users list with DB (optional)
@@ -327,14 +346,25 @@ export const loginUser = async (email: string, password: string): Promise<{ succ
     return { success: false, error: 'userDisabled' };
   }
   
-  if (user.password !== password) {
+  // Verify password (supports both hashed and legacy plain-text)
+  const localVerify = await verifyPassword(password, user.password);
+  if (!localVerify.match) {
     return { success: false, error: 'incorrectPassword' };
+  }
+
+  // Auto-upgrade plain-text password to hash
+  if (localVerify.needsUpgrade) {
+    const hashed = await hashPassword(password);
+    user.password = hashed;
   }
   
   // Auto-grant admin to primary admin email
   if (isPrimaryAdmin(user.email) && !user.isAdmin) {
     user.isAdmin = true;
-    const userIndex = users.findIndex(u => u.id === user.id);
+  }
+
+  const userIndex = users.findIndex(u => u.id === user.id);
+  if (userIndex >= 0) {
     users[userIndex] = user;
     saveUsers(users);
   }
@@ -391,7 +421,7 @@ export const migrateLocalUsersToSupabase = async (): Promise<{ created: number; 
 
 // Public registration is disabled - only admins can create users
 // This function is kept for backward compatibility but should only be called by admins
-export const registerUser = (name: string, email: string, password: string): { success: boolean; user?: User; error?: string } => {
+export const registerUser = async (name: string, email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
   const users = getUsers();
   
   // Check if email already exists
@@ -399,12 +429,14 @@ export const registerUser = (name: string, email: string, password: string): { s
   if (existingUser) {
     return { success: false, error: 'emailExists' };
   }
+
+  const hashedPw = await hashPassword(password);
   
   const newUser: User = {
     id: generateUserId(),
     name,
     email,
-    password, // In real app, this would be hashed
+    password: hashedPw,
     createdAt: new Date().toISOString(),
     isAdmin: isPrimaryAdmin(email), // Auto-grant admin to primary admin email
   };
@@ -445,11 +477,13 @@ export const adminCreateUser = async (
     }
   }
   
+  const hashedPw = await hashPassword(password);
+
   const newUser: User = {
     id: generateUserId(),
     name,
     email,
-    password,
+    password: hashedPw,
     createdAt: new Date().toISOString(),
     isAdmin: isPrimaryAdmin(email),
     department,
@@ -633,11 +667,13 @@ export const changeUserPassword = async (
         return { success: false, error: 'userNotFound' };
       }
 
-      if (dbUser.password !== currentPassword) {
+      const { match } = await verifyPassword(currentPassword, dbUser.password);
+      if (!match) {
         return { success: false, error: 'incorrectPassword' };
       }
 
-      const updatedUser = { ...dbUser, password: newPassword };
+      const hashedNew = await hashPassword(newPassword);
+      const updatedUser = { ...dbUser, password: hashedNew };
       const success = await supabaseUsers.upsert(updatedUser);
       if (!success) {
         return { success: false, error: 'updateFailed' };
@@ -668,12 +704,14 @@ export const changeUserPassword = async (
     return { success: false, error: 'userNotFound' };
   }
 
-  // Verify current password
-  if (localUser.password !== currentPassword) {
+  // Verify current password (supports hashed and plain-text)
+  const localVerify = await verifyPassword(currentPassword, localUser.password);
+  if (!localVerify.match) {
     return { success: false, error: 'incorrectPassword' };
   }
 
-  localUser.password = newPassword;
+  const hashedNewLocal = await hashPassword(newPassword);
+  localUser.password = hashedNewLocal;
   users[userIndex] = localUser;
   saveUsers(users);
 
@@ -727,7 +765,7 @@ export const adminDeleteUser = async (
   // Delete user's shifts from localStorage
   const shifts = JSON.parse(localStorage.getItem('attendance_shifts') || '[]');
   const filteredShifts = shifts.filter((s: { userId: string }) => s.userId !== targetUserId);
-  localStorage.setItem('attendance_shifts', JSON.stringify(filteredShifts));
+  safeSetItem('attendance_shifts', JSON.stringify(filteredShifts));
   
   // Remove user from localStorage
   users.splice(userIndex, 1);

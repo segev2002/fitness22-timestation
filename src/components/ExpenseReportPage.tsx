@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { User, ExpenseReport, ExpenseItem, Currency } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { supabaseExpenses } from '../utils/supabase';
+import { supabaseExpenses, isSupabaseConfigured } from '../utils/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExpenseReportPageProps {
@@ -329,7 +329,15 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   };
   
   // Handle invoice upload
-  const handleInvoiceUpload = (currency: Currency, itemId: string, file: File) => {
+  const handleInvoiceUpload = async (currency: Currency, itemId: string, file: File) => {
+    if (isSupabaseConfigured()) {
+      const url = await supabaseExpenses.uploadInvoice(file, user.id, itemId);
+      if (url) {
+        updateExpenseItem(currency, itemId, { invoiceUrl: url, invoiceBase64: undefined });
+        return;
+      }
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;

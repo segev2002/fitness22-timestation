@@ -89,7 +89,7 @@ const Home = ({ user }: HomeProps) => {
       startTime: now.getTime(),
     };
 
-    setActiveShift(newActiveShift);
+  setActiveShift(newActiveShift, user.id);
     setActiveShiftState(newActiveShift);
     setIsInShift(true);
   };
@@ -133,7 +133,7 @@ const Home = ({ user }: HomeProps) => {
     };
 
     addShift(newShift);
-    setActiveShift(null);
+  setActiveShift(null, user.id);
     setActiveShiftState(null);
     setIsInShift(false);
     setNote('');
@@ -167,7 +167,7 @@ const Home = ({ user }: HomeProps) => {
     };
     
     addShift(newShift);
-    setActiveShift(null);
+  setActiveShift(null, user.id);
     setActiveShiftState(null);
     setIsInShift(false);
     setNote('');

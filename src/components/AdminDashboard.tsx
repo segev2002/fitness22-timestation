@@ -17,6 +17,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [activeShifts, setActiveShifts] = useState<ActiveShift[]>([]);
+  const [now, setNow] = useState<number>(0);
   const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -78,6 +79,12 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     if (!isSupabaseConfigured()) return;
     const channel = supabaseActiveShift.subscribeToChanges((shifts) => setActiveShifts(shifts));
     return () => { channel?.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(id);
   }, []);
 
   const handleCreateUser = async () => {
@@ -368,7 +375,7 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
               {activeShifts.map(as => {
                 const u = users.find(u => u.id === as.userId);
-                const elapsed = Math.floor((Date.now() - as.startTime) / 60000);
+                const elapsed = now ? Math.floor((now - as.startTime) / 60000) : 0;
                 return (
                   <div key={as.userId} style={{ background: 'var(--f22-surface-light)', border: '1px solid rgba(57,255,20,.2)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

@@ -19,6 +19,8 @@ const createEmptyItem = (): ItemState => ({
   quantity: 1, description: '', unitPrice: 0,
 });
 
+const createExpenseReportId = () => `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 const ExpenseItemRow = ({ item, currency, onUpdate, onRemove, onInvoiceUpload, onInvoiceRemove, t }: {
   item: ItemState;
   currency: Currency;
@@ -160,7 +162,7 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     const [y, m] = selectedMonth.split('-').map(Number);
     const monthNames = language === 'he' ? t.months : t.months;
     const expensePeriod = `${monthNames[m - 1]}, ${y}`;
-    const reportId = report?.id || `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const reportId = report?.id || createExpenseReportId();
 
     const expReport: ExpenseReport = {
       id: reportId, userId: user.id, userName: user.name, month: selectedMonth,

@@ -1,581 +1,299 @@
-import { useState, useCallback, useEffect } from 'react';
-import type { Shift, User } from '../types';
-import { getShiftsForMonth, addShift, generateId, deleteShiftsByDates } from '../utils/storage';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useTheme } from '../context/ThemeContext';
+import { addShift, deleteShift } from '../utils/storage';
+import { supabaseShifts, isSupabaseConfigured } from '../utils/supabase';
+import type { User, Shift } from '../types';
 
 interface EditActivityProps {
   user: User;
-  onShiftsUpdated: () => void;
+  onShiftsUpdated?: () => void;
 }
 
-interface DayInfo {
+interface CalendarDay {
   date: Date;
-  dayNumber: number;
+  dateStr: string;
   isCurrentMonth: boolean;
-  hasShift: boolean;
-  isSelected: boolean;
   isToday: boolean;
-}
-
-interface BulkFormData {
-  checkInTime: string;
-  checkOutTime: string;
-  breakMinutes: number;
-  dayType: 'office' | 'home' | 'sickDay' | 'other';
-  note: string;
+  hasShift: boolean;
 }
 
 const EditActivity = ({ user, onShiftsUpdated }: EditActivityProps) => {
   const { t } = useLanguage();
-  const { isDark } = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [existingShifts, setExistingShifts] = useState<Shift[]>([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [formData, setFormData] = useState<BulkFormData>({
-    checkInTime: '09:00',
-    checkOutTime: '17:00',
-    breakMinutes: 0,
-    dayType: 'office',
-    note: '',
+  const [formData, setFormData] = useState({
+    checkIn: '09:00', checkOut: '17:00', dayType: 'office', note: '', breakMinutes: 0,
   });
 
-  // Load existing shifts for the current month
-  useEffect(() => {
-    const shifts = getShiftsForMonth(currentDate.getFullYear(), currentDate.getMonth())
-      .filter(s => s.userId === user.id);
-    setExistingShifts(shifts);
+  const loadShifts = useCallback(async () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    if (isSupabaseConfigured()) {
+      const shifts = await supabaseShifts.getForUser(user.id, year, month);
+      setExistingShifts(shifts);
+    } else {
+      const { getShifts } = await import('../utils/storage');
+      const all = getShifts();
+      setExistingShifts(all.filter(s => {
+        const d = new Date(s.date);
+        return s.userId === user.id && d.getFullYear() === year && d.getMonth() === month;
+      }));
+    }
   }, [currentDate, user.id]);
 
-  // Generate calendar days
-  const generateCalendarDays = useCallback((): DayInfo[] => {
+  useEffect(() => { loadShifts(); }, [loadShifts]);
+
+  const generateCalendarDays = (): CalendarDay[] => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
     const today = new Date();
-    
-    const days: DayInfo[] = [];
-    
-    // Days from previous month
-    const firstDayOfWeek = firstDay.getDay();
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      const date = new Date(year, month, -i);
-      days.push({
-        date,
-        dayNumber: date.getDate(),
-        isCurrentMonth: false,
-        hasShift: false,
-        isSelected: false,
-        isToday: false,
-      });
+    const todayStr = today.toISOString().split('T')[0];
+    const shiftDates = new Set(existingShifts.map(s => s.date));
+
+    const days: CalendarDay[] = [];
+    // Previous month padding
+    const prevMonth = new Date(year, month, 0);
+    for (let i = startDay - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonth.getDate() - i);
+      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, hasShift: false });
     }
-    
-    // Days of current month
+    // Current month
     for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date = new Date(year, month, day);
-      const dateStr = date.toISOString().split('T')[0];
-      const hasShift = existingShifts.some(s => s.date === dateStr);
-      
-      days.push({
-        date,
-        dayNumber: day,
-        isCurrentMonth: true,
-        hasShift,
-        isSelected: selectedDays.has(dateStr),
-        isToday: date.toDateString() === today.toDateString(),
-      });
+      const d = new Date(year, month, day);
+      const dateStr = d.toISOString().split('T')[0];
+      days.push({ date: d, dateStr, isCurrentMonth: true, isToday: dateStr === todayStr, hasShift: shiftDates.has(dateStr) });
     }
-    
-    // Days from next month to fill the grid
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      const date = new Date(year, month + 1, i);
-      days.push({
-        date,
-        dayNumber: i,
-        isCurrentMonth: false,
-        hasShift: false,
-        isSelected: false,
-        isToday: false,
-      });
+    // Next month padding
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({ date: d, dateStr: d.toISOString().split('T')[0], isCurrentMonth: false, isToday: false, hasShift: false });
     }
-    
     return days;
-  }, [currentDate, existingShifts, selectedDays]);
+  };
 
-  const handleDayMouseDown = (date: Date, isCurrentMonth: boolean) => {
+  const handleDayMouseDown = (dateStr: string, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return;
-    
-    // Prevent selecting future dates
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-    if (date > today) return;
-    
     setIsDragging(true);
-    const dateStr = date.toISOString().split('T')[0];
-    
     setSelectedDays(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(dateStr)) {
-        newSet.delete(dateStr);
-      } else {
-        newSet.add(dateStr);
-      }
-      return newSet;
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr); else next.add(dateStr);
+      return next;
     });
   };
 
-  const handleDayMouseEnter = (date: Date, isCurrentMonth: boolean) => {
+  const handleDayMouseEnter = (dateStr: string, isCurrentMonth: boolean) => {
     if (!isDragging || !isCurrentMonth) return;
-    
-    // Prevent selecting future dates
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today
-    if (date > today) return;
-    
-    const dateStr = date.toISOString().split('T')[0];
-    setSelectedDays(prev => {
-      const newSet = new Set(prev);
-      newSet.add(dateStr);
-      return newSet;
-    });
+    setSelectedDays(prev => new Set([...prev, dateStr]));
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  const handleMouseUp = () => setIsDragging(false);
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    setSelectedDays(new Set());
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    setSelectedDays(new Set());
-  };
-
-  const handleClearSelection = () => {
-    setSelectedDays(new Set());
-  };
+  const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
   const handleBulkFill = () => {
-    if (selectedDays.size === 0) {
-      alert(t.selectAtLeastOne);
-      return;
-    }
+    if (selectedDays.size === 0) { alert(t.selectAtLeastOne); return; }
     setShowBulkModal(true);
   };
 
-  const handleApplyBulk = () => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
-    // Create shifts for all selected days (excluding future dates)
-    selectedDays.forEach(dateStr => {
-      const shiftDate = new Date(dateStr);
-      
-      // Skip future dates (safety check)
-      if (shiftDate > today) {
-        console.warn('Skipping future date:', dateStr);
-        return;
-      }
-      
-      const checkInDateTime = new Date(`${dateStr}T${formData.checkInTime}:00`);
-      const checkOutDateTime = new Date(`${dateStr}T${formData.checkOutTime}:00`);
-      
-      // Calculate duration
-      const duration = Math.round((checkOutDateTime.getTime() - checkInDateTime.getTime()) / (1000 * 60));
+  const handleApplyBulk = async () => {
+    const [h1, m1] = formData.checkIn.split(':').map(Number);
+    const [h2, m2] = formData.checkOut.split(':').map(Number);
+    const noteWithType = formData.dayType !== 'office' ? `[${formData.dayType}] ${formData.note}`.trim() : formData.note;
 
-      const dayTypeNotes: Record<string, string> = {
-        office: t.workFromOffice,
-        home: t.workFromHome,
-        sickDay: t.workSickDay,
-        other: t.workOther,
+    for (const dateStr of selectedDays) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const checkIn = new Date(d); checkIn.setHours(h1, m1, 0);
+      const checkOut = new Date(d); checkOut.setHours(h2, m2, 0);
+      const totalMin = Math.floor((checkOut.getTime() - checkIn.getTime()) / 60000);
+      const netMin = Math.max(totalMin - formData.breakMinutes, 0);
+
+      const shift: Shift = {
+        id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id, userName: user.name, date: dateStr,
+        checkIn: checkIn.toISOString(), checkOut: checkOut.toISOString(),
+        note: noteWithType, duration: netMin, breakMinutes: formData.breakMinutes || undefined,
       };
-
-      const noteText = formData.note 
-        ? `${dayTypeNotes[formData.dayType]} | ${formData.note}` 
-        : dayTypeNotes[formData.dayType];
-
-      const newShift: Shift = {
-        id: generateId(),
-        userId: user.id,
-        userName: user.name,
-        date: dateStr,
-        checkIn: checkInDateTime.toISOString(),
-        checkOut: checkOutDateTime.toISOString(),
-        note: noteText,
-        duration: Math.max(0, duration),
-        breakMinutes: formData.breakMinutes || 0,
-      };
-
-      addShift(newShift);
-    });
-
-    // Reset and refresh
-    setSelectedDays(new Set());
+      addShift(shift);
+    }
     setShowBulkModal(false);
-    setFormData({
-      checkInTime: '09:00',
-      checkOutTime: '17:00',
-      breakMinutes: 0,
-      dayType: 'office',
-      note: '',
-    });
-    
-    // Refresh shifts
-    const shifts = getShiftsForMonth(currentDate.getFullYear(), currentDate.getMonth())
-      .filter(s => s.userId === user.id);
-    setExistingShifts(shifts);
-    onShiftsUpdated();
-  };
-
-  const handleDayTypeSelect = (value: BulkFormData['dayType']) => {
-    setFormData((prev) => {
-      if (value === 'sickDay') {
-        return {
-          ...prev,
-          dayType: value,
-          checkInTime: '09:00',
-          checkOutTime: '18:00',
-        };
-      }
-
-      return {
-        ...prev,
-        dayType: value,
-      };
-    });
-  };
-
-  const handleDeleteSelected = () => {
-    if (selectedDays.size === 0) {
-      return;
-    }
-    
-    const datesArray = Array.from(selectedDays);
-    const shiftsToDelete = existingShifts.filter(s => datesArray.includes(s.date));
-    
-    if (shiftsToDelete.length === 0) {
-      alert('No shifts found on selected dates');
-      return;
-    }
-    
-    const confirmMessage = `${t.confirmDelete} ${shiftsToDelete.length} shift(s)?`;
-    
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-    
-    deleteShiftsByDates(user.id, datesArray);
-    
-    // Reset and refresh
     setSelectedDays(new Set());
-    
-    // Refresh shifts
-    const shifts = getShiftsForMonth(currentDate.getFullYear(), currentDate.getMonth())
-      .filter(s => s.userId === user.id);
-    setExistingShifts(shifts);
-    onShiftsUpdated();
+    await loadShifts();
+    onShiftsUpdated?.();
   };
 
-  const days = generateCalendarDays();
+  const handleDeleteSelected = async () => {
+    if (selectedDays.size === 0) return;
+    if (!confirm(t.confirmDelete)) return;
+    for (const dateStr of selectedDays) {
+      const existing = existingShifts.find(s => s.date === dateStr);
+      if (existing) deleteShift(existing.id);
+    }
+    setSelectedDays(new Set());
+    await loadShifts();
+    onShiftsUpdated?.();
+  };
+
+  const handleDayTypeSelect = (key: string) => setFormData(f => ({ ...f, dayType: key }));
+
+  const calendarDays = generateCalendarDays();
+  const monthYear = `${t.months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+  const dayTypes = [
+    { key: 'office', label: t.office },
+    { key: 'home', label: t.home },
+    { key: 'sickday', label: t.sickDay },
+    { key: 'other', label: t.other },
+  ];
+
+  const iconStyle = { width: 20, height: 20 };
 
   return (
-    <div className="w-full min-h-[calc(100vh-72px)] flex flex-col" style={{ backgroundColor: 'var(--f22-background)' }}>
-      <div className="px-5 sm:px-8 md:px-12 py-4 sm:py-6 min-h-[calc(100vh-72px)] flex flex-col">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 sm:p-2.5 bg-[#39FF14]/10 rounded-xl">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight" style={{ color: 'var(--f22-text)' }}>{t.bulkCalendar}</h2>
-          </div>
-          
-          {/* Month Navigation */}
-          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
-            <button
-              onClick={handlePrevMonth}
-              className="p-2 sm:p-2.5 rounded-xl transition-colors"
-              style={{ backgroundColor: 'transparent' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--f22-surface)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <svg className="w-5 h-5" style={{ color: 'var(--f22-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="text-base sm:text-lg font-semibold min-w-[140px] sm:min-w-[160px] text-center" style={{ color: 'var(--f22-text)' }}>
-              {t.months[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 sm:p-2.5 rounded-xl transition-colors"
-              style={{ backgroundColor: 'transparent' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--f22-surface)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <svg className="w-5 h-5" style={{ color: 'var(--f22-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
+    <div style={{ minHeight: 'calc(100vh - 72px)' }}>
+      <div className="page-section">
+        <h3 className="section-heading">
+          <span className="section-icon">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          </span>
+          {t.bulkCalendar}
+        </h3>
 
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 sm:gap-6 mb-4 text-xs sm:text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-md" style={{ backgroundColor: '#6B7280' }}></div>
-            <span style={{ color: 'var(--f22-text-muted)' }}>{t.selected}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-md" style={{ backgroundColor: '#39FF14' }}></div>
-            <span style={{ color: 'var(--f22-text-muted)' }}>{t.hasShift}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-amber-400 rounded-full"></div>
-            <span style={{ color: 'var(--f22-text-muted)' }}>{t.today}</span>
-          </div>
+        {/* Month Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <button onClick={handlePrevMonth} className="btn-sm ghost">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--f22-text)' }}>{monthYear}</span>
+          <button onClick={handleNextMonth} className="btn-sm ghost">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
         </div>
 
         {/* Calendar Grid */}
-        <div className="select-none flex-1 flex flex-col">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
-            {t.days_short.map((day: string) => (
-              <div key={day} className="text-center py-1 sm:py-2 font-semibold text-xs sm:text-sm" style={{ color: 'var(--f22-muted)' }}>
-                {day}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 24, userSelect: 'none' }}>
+          {t.days_short.map(d => (
+            <div key={d} style={{ textAlign: 'center', fontWeight: 600, fontSize: 12, color: 'var(--f22-text-muted)', padding: '8px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d}</div>
+          ))}
+          {calendarDays.map(day => {
+            const isSelected = selectedDays.has(day.dateStr);
+            return (
+              <div
+                key={day.dateStr}
+                onMouseDown={() => handleDayMouseDown(day.dateStr, day.isCurrentMonth)}
+                onMouseEnter={() => handleDayMouseEnter(day.dateStr, day.isCurrentMonth)}
+                style={{
+                  position: 'relative',
+                  padding: '10px 4px',
+                  borderRadius: 12,
+                  textAlign: 'center',
+                  fontSize: 14,
+                  fontWeight: day.isToday ? 700 : 500,
+                  cursor: day.isCurrentMonth ? 'pointer' : 'default',
+                  opacity: day.isCurrentMonth ? 1 : 0.3,
+                  color: isSelected ? '#0D0D0D' : day.isToday ? '#39FF14' : 'var(--f22-text)',
+                  background: isSelected ? '#39FF14' : day.hasShift ? 'rgba(57,255,20,.1)' : 'transparent',
+                  border: day.isToday && !isSelected ? '2px solid #39FF14' : '2px solid transparent',
+                  boxShadow: isSelected ? 'var(--shadow-glow)' : 'none',
+                  transition: 'all .15s ease',
+                }}
+              >
+                {day.date.getDate()}
+                {day.hasShift && !isSelected && (
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#39FF14', margin: '4px auto 0' }} />
+                )}
               </div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 flex-1">
-            {days.map((day, index) => {
-              const isWeekend = day.date.getDay() === 5 || day.date.getDay() === 6;
-              // Selected days: use gray in both modes for visibility
-              const selectedBgColor = isDark ? '#6B7280' : '#6B7280';
-              
-              // Check if date is in the future
-              const today = new Date();
-              today.setHours(23, 59, 59, 999);
-              const isFutureDate = day.date > today;
-              
-              // Determine background color
-              let bgColor: string;
-              if (day.isSelected) {
-                bgColor = selectedBgColor;
-              } else if (!day.isCurrentMonth || isFutureDate) {
-                // Days NOT in current month or future dates - use body background
-                bgColor = 'var(--f22-bg)';
-              } else if (day.hasShift) {
-                // Days with shifts - light green
-                bgColor = isDark ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.3)';
-              } else if (isWeekend) {
-                // Weekend days without shifts - slightly different
-                bgColor = 'var(--f22-bg)';
-              } else {
-                // Regular weekdays in current month - use surface
-                bgColor = 'var(--f22-surface)';
-              }
-              
-              return (
-                <div
-                  key={index}
-                  onMouseDown={() => handleDayMouseDown(day.date, day.isCurrentMonth)}
-                  onMouseEnter={() => handleDayMouseEnter(day.date, day.isCurrentMonth)}
-                  className={`
-                    relative min-h-[calc((100vh-300px)/6)] sm:min-h-[calc((100vh-280px)/6)] flex items-center justify-center rounded-xl transition-all
-                    ${day.isSelected ? 'shadow-lg scale-105' : ''}
-                    ${!day.isCurrentMonth || isFutureDate ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}
-                  `}
-                  style={{
-                    backgroundColor: bgColor,
-                    color: !day.isCurrentMonth || isFutureDate ? 'var(--f22-text-muted)' : 'var(--f22-text)'
-                  }}
-                >
-                  <span className={`text-sm sm:text-base font-bold ${
-                    day.isToday && !day.isSelected 
-                      ? 'bg-amber-400 text-black w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center' 
-                      : day.isSelected 
-                        ? 'text-white'
-                        : day.hasShift && day.isCurrentMonth
-                          ? 'text-[var(--f22-green)]' 
-                          : ''
-                  }`}>
-                    {day.dayNumber}
-                  </span>
-                  {day.hasShift && !day.isSelected && day.isCurrentMonth && (
-                    <div className="absolute bottom-1 sm:bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[var(--f22-green)] rounded-full"></div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-center mt-6 sm:mt-8 pt-4 sm:pt-6" style={{ borderTop: '1px solid var(--f22-border-subtle)' }}>
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-            {selectedDays.size > 0 && (
-              <span className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold" style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}>
-                {selectedDays.size} {t.daysSelected}
-              </span>
-            )}
-            {selectedDays.size > 0 && (
-              <button
-                onClick={handleClearSelection}
-                className="px-3 sm:px-5 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] rounded-xl transition-colors font-semibold text-sm"
-                style={{ color: 'var(--f22-text-secondary)' }}
-              >
-                {t.clear}
-              </button>
-            )}
-            {selectedDays.size > 0 && (
-              <button
-                onClick={handleDeleteSelected}
-                className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-bold shadow-lg hover:shadow-xl flex items-center gap-2 sm:gap-3 text-sm"
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                {t.delete}
-              </button>
-            )}
-            <button
-              onClick={handleBulkFill}
-              disabled={selectedDays.size === 0}
-              className="px-4 sm:px-6 py-2 sm:py-3 min-h-[40px] sm:min-h-[52px] bg-[#39FF14] text-[#0D0D0D] rounded-xl hover:brightness-110 transition-all font-bold disabled:bg-[#333333] disabled:text-gray-600 disabled:cursor-not-allowed shadow-[var(--shadow-glow)] flex items-center gap-2 sm:gap-3 text-sm"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              {t.bulkFill}
-            </button>
-          </div>
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 24, justifyContent: 'center', fontSize: 12, color: 'var(--f22-text-muted)', marginBottom: 24 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 4, background: '#39FF14' }} /> {t.selected}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 4, background: 'rgba(57,255,20,.1)', border: '1px solid rgba(57,255,20,.3)' }} /> {t.hasShift}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 4, border: '2px solid #39FF14' }} /> {t.today}
+          </span>
         </div>
 
-        {/* Bulk Fill Modal */}
-        {showBulkModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6">
-            <div className="rounded-2xl p-5 sm:p-7 md:p-9 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--f22-surface)', border: '1px solid var(--f22-border)' }}>
-              <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" style={{ color: 'var(--f22-text)' }}>{t.bulkFillTitle}</h3>
-              <p className="mb-6 sm:mb-8 text-sm sm:text-base" style={{ color: 'var(--f22-muted)' }}>
-                {t.detailsWillApply} {selectedDays.size} {t.selectedDays}
-              </p>
-              
-              <div className="space-y-4 sm:space-y-6">
-                {/* Time Inputs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.checkInTimeLabel}</label>
-                    <input
-                      type="time"
-                      value={formData.checkInTime}
-                      onChange={(e) => setFormData({ ...formData, checkInTime: e.target.value })}
-                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.checkOutTimeLabel}</label>
-                    <input
-                      type="time"
-                      value={formData.checkOutTime}
-                      onChange={(e) => setFormData({ ...formData, checkOutTime: e.target.value })}
-                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.breakMinutes}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.breakMinutes}
-                      onChange={(e) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 min-h-[48px] sm:min-h-[52px] text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 transition-all"
-                      style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
-                    />
-                  </div>
-                </div>
+        {/* Action bar */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+          {selectedDays.size > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--f22-text-muted)', fontSize: 14, fontWeight: 500 }}>
+              {selectedDays.size} {t.daysSelected}
+            </span>
+          )}
+          <button onClick={handleBulkFill} disabled={selectedDays.size === 0} className="btn-sm green">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            {t.bulkFill}
+          </button>
+          <button onClick={handleDeleteSelected} disabled={selectedDays.size === 0} className="btn-sm danger">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            {t.delete}
+          </button>
+          <button onClick={() => setSelectedDays(new Set())} disabled={selectedDays.size === 0} className="btn-sm ghost">{t.clear}</button>
+        </div>
+      </div>
 
-                {/* Day Type */}
-                <div>
-                  <label className="block mb-3 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.dayType}</label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                    {[
-                      { value: 'office', label: `🏢 ${t.office}` },
-                      { value: 'home', label: `🏠 ${t.home}` },
-                      { value: 'sickDay', label: `🤒 ${t.sickDay}` },
-                      { value: 'other', label: `📋 ${t.other}` },
-                    ].map(type => (
-                      <button
-                        key={type.value}
-                        type="button"
-                        onClick={() => handleDayTypeSelect(type.value as BulkFormData['dayType'])}
-                        className={`px-3 sm:px-4 py-2.5 sm:py-3 min-h-[48px] sm:min-h-[52px] rounded-xl border transition-all font-semibold text-sm sm:text-base ${
-                          formData.dayType === type.value
-                            ? 'border-[#39FF14] bg-[#39FF14] text-[#0D0D0D]'
-                            : ''
-                        }`}
-                        style={formData.dayType !== type.value ? { borderColor: 'var(--f22-border)', color: 'var(--f22-text)' } : {}}
-                      >
-                        {type.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Note */}
-                <div>
-                  <label className="block mb-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--f22-text)' }}>{t.note} ({t.optional})</label>
-                  <textarea
-                    value={formData.note}
-                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    className="w-full rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40 resize-none transition-all placeholder:opacity-50"
-                    style={{ backgroundColor: 'var(--f22-background)', border: '1px solid var(--f22-border)', color: 'var(--f22-text)' }}
-                    rows={3}
-                    placeholder={t.addNote}
-                  />
+      {/* Bulk Fill Modal */}
+      {showBulkModal && (
+        <div className="modal-overlay">
+          <div className="modal-bg-blur" style={{ position: 'absolute', inset: 0 }} onClick={() => setShowBulkModal(false)} />
+          <div className="modal-card" style={{ maxWidth: 480, position: 'relative', zIndex: 1 }}>
+            <h3>{t.bulkFillTitle}</h3>
+            <p style={{ color: 'var(--f22-text-muted)', marginBottom: 20, fontSize: 14 }}>
+              {t.detailsWillApply} <strong style={{ color: '#39FF14' }}>{selectedDays.size}</strong> {t.selectedDays}
+            </p>
+            <div className="modal-form">
+              <div>
+                <label className="form-label">{t.dayType}</label>
+                <div className="daytype-grid">
+                  {dayTypes.map(dt => (
+                    <button key={dt.key} type="button" onClick={() => handleDayTypeSelect(dt.key)} className={`daytype-btn ${formData.dayType === dt.key ? 'active' : ''}`}>{dt.label}</button>
+                  ))}
                 </div>
               </div>
-
-              {/* Modal Actions */}
-              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
-                <button
-                  onClick={() => setShowBulkModal(false)}
-                  className="flex-1 py-3 sm:py-4 min-h-[48px] sm:min-h-[52px] rounded-xl transition-all font-semibold text-sm sm:text-base"
-                  style={{ backgroundColor: 'var(--f22-border)', color: 'var(--f22-text)' }}
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  onClick={handleApplyBulk}
-                  className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 sm:py-4 min-h-[48px] sm:min-h-[52px] rounded-xl hover:brightness-110 transition-all font-bold text-sm sm:text-base shadow-[var(--shadow-glow)] flex items-center justify-center gap-2 sm:gap-3"
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {t.applyTo} {selectedDays.size} {t.days}
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">{t.checkInTimeLabel}</label>
+                  <input type="time" value={formData.checkIn} onChange={e => setFormData(f => ({ ...f, checkIn: e.target.value }))} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.checkOutTimeLabel}</label>
+                  <input type="time" value={formData.checkOut} onChange={e => setFormData(f => ({ ...f, checkOut: e.target.value }))} className="form-input" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.breakMinutes}</label>
+                <input type="number" min={0} value={formData.breakMinutes || ''} onChange={e => setFormData(f => ({ ...f, breakMinutes: Number(e.target.value) }))} className="form-input" placeholder="0" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.note} ({t.optional})</label>
+                <textarea value={formData.note} onChange={e => setFormData(f => ({ ...f, note: e.target.value }))} className="form-input resize-none" rows={2} placeholder={t.addNote} />
+              </div>
+              <div className="modal-actions">
+                <button onClick={handleApplyBulk} className="btn-green">{t.applyTo} {selectedDays.size} {t.days}</button>
+                <button onClick={() => setShowBulkModal(false)} className="btn-secondary">{t.cancel}</button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

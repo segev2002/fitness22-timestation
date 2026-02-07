@@ -1,26 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { User, ExpenseReport, ExpenseItem, Currency } from '../types';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { supabaseExpenses, supabaseUsers } from '../utils/supabase';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import type { User, ExpenseReport } from '../types';
 
-interface AdminExpenseReportsProps {
-  user: User;
-}
-
-// Currency symbols
-const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  NIS: '₪',
-  USD: '$',
-  EUR: '€',
-};
+interface AdminExpenseReportsProps { user: User; }
 
 const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
-  void user;
-  const { t, language } = useLanguage();
-  const isRTL = language === 'he';
-  
+  const { t } = useLanguage();
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,598 +15,187 @@ const AdminExpenseReports = ({ user }: AdminExpenseReportsProps) => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [reportsData, usersData] = await Promise.all([
-          supabaseExpenses.getAllForMonth(selectedMonth),
-          supabaseUsers.getAll(),
-        ]);
-        setReports(reportsData);
-        setUsers(usersData.filter(u => !u.isDisabled));
-      } catch (error) {
-        console.error('Error loading expense reports:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    const [allReports, allUsers] = await Promise.all([
+      supabaseExpenses.getAllForMonth(selectedMonth),
+      supabaseUsers.getAll(),
+    ]);
+    setReports(allReports);
+    setUsers(allUsers.filter(u => !u.isDisabled));
+    setIsLoading(false);
   }, [selectedMonth]);
-  
-  // Group reports by user
-  const reportsByUser = useMemo(() => {
-    const grouped: Record<string, { user: User | undefined; reports: ExpenseReport[] }> = {};
-    
-    // Initialize with all users
-    for (const u of users) {
-      grouped[u.id] = { user: u, reports: [] };
-    }
-    
-    // Add reports
-    for (const report of reports) {
-      if (!grouped[report.userId]) {
-        grouped[report.userId] = { user: undefined, reports: [] };
-      }
-      grouped[report.userId].reports.push(report);
-    }
-    
-    // Filter to only users with reports
-    return Object.entries(grouped)
-      .filter(([, data]) => data.reports.length > 0)
-      .sort(([, a], [, b]) => (a.user?.name || '').localeCompare(b.user?.name || ''));
-  }, [reports, users]);
-  
-  // Toggle user expansion
-  const toggleUserExpansion = (userId: string) => {
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const toggleUser = (userId: string) => {
     setExpandedUsers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
     });
-  };
-  
-  // Expand all
-  const expandAll = () => {
-    setExpandedUsers(new Set(reportsByUser.map(([userId]) => userId)));
-  };
-  
-  // Collapse all
-  const collapseAll = () => {
-    setExpandedUsers(new Set());
   };
 
   const handleDeleteReport = async (reportId: string) => {
-    const confirmed = confirm(t.confirmDeleteExpenseReport);
-    if (!confirmed) return;
+    if (!confirm(t.confirmDeleteExpenseReport)) return;
+    await supabaseExpenses.delete(reportId);
+    loadData();
+  };
+
+  const handleApprove = async (reportId: string) => {
+    await supabaseExpenses.updateStatus(reportId, 'approved', user.name);
+    loadData();
+  };
+
+  const handleReject = async (reportId: string) => {
+    await supabaseExpenses.updateStatus(reportId, 'rejected');
+    loadData();
+  };
+
+  const handleGeneratePDF = async (report: ExpenseReport) => {
     try {
-      const success = await supabaseExpenses.delete(reportId);
-      if (!success) return;
-      const updatedReports = await supabaseExpenses.getAllForMonth(selectedMonth);
-      setReports(updatedReports);
-    } catch (error) {
-      console.error('Error deleting expense report:', error);
-    }
-  };
-  
-  // Format currency
-  const formatCurrency = (value: number, currency: Currency) => {
-    return `${CURRENCY_SYMBOLS[currency]}${value.toFixed(2)}`;
-  };
+      const html2canvas = (await import('html2canvas')).default;
+      const jsPDF = (await import('jspdf')).default;
 
-  const getInvoiceItems = (report: ExpenseReport) => (
-    [...report.itemsNIS, ...report.itemsUSD, ...report.itemsEUR]
-      .filter(item => item.invoiceUrl || item.invoiceBase64)
-  );
+      // Build off-screen element
+      const container = document.createElement('div');
+      container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;padding:40px;background:#fff;color:#000;font-family:Arial,sans-serif;';
 
-  const getInvoiceExtension = (url: string) => {
-    if (url.startsWith('data:')) {
-      const match = url.match(/^data:([^;]+);/);
-      if (match?.[1]) {
-        const mime = match[1];
-        if (mime.includes('pdf')) return 'pdf';
-        if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
-        if (mime.includes('png')) return 'png';
-      }
-      return 'png';
-    }
+      const sym = (c: string) => c === 'NIS' ? '₪' : c === 'USD' ? '$' : '€';
+      const renderItems = (items: typeof report.itemsNIS, cur: string) =>
+        items.map(i => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${i.quantity}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${i.description}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${sym(cur)}${i.unitPrice.toFixed(2)}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:600">${sym(cur)}${i.lineTotal.toFixed(2)}</td></tr>`).join('');
 
-    try {
-      const parsed = new URL(url);
-      const ext = parsed.pathname.split('.').pop();
-      if (ext && ext.length <= 5) return ext;
-    } catch {
-      // ignore
-    }
-
-    if (url.toLowerCase().includes('pdf')) return 'pdf';
-    return 'png';
-  };
-
-  const downloadInvoice = async (url: string, filename: string) => {
-    if (url.startsWith('data:')) {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.click();
-      return;
-    }
-
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(blobUrl);
-  };
-
-  const handleDownloadInvoices = async (report: ExpenseReport) => {
-    const invoiceItems = getInvoiceItems(report);
-    if (invoiceItems.length === 0) return;
-
-    const baseName = report.userName.replace(/\s+/g, '_');
-    for (let index = 0; index < invoiceItems.length; index += 1) {
-      const item = invoiceItems[index];
-      const url = item.invoiceBase64 || item.invoiceUrl;
-      if (!url) continue;
-      const extension = getInvoiceExtension(url);
-      const filename = `invoice_${baseName}_${report.month}_${index + 1}.${extension}`;
-      await downloadInvoice(url, filename);
-    }
-  };
-
-  const handleDownloadInvoiceItem = async (report: ExpenseReport, item: ExpenseItem, index: number) => {
-    const url = item.invoiceBase64 || item.invoiceUrl;
-    if (!url) return;
-    const baseName = report.userName.replace(/\s+/g, '_');
-    const extension = getInvoiceExtension(url);
-    const filename = `invoice_${baseName}_${report.month}_${index + 1}.${extension}`;
-    await downloadInvoice(url, filename);
-  };
-  
-  // Generate PDF for a report
-  const generatePDF = useCallback(async (report: ExpenseReport) => {
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const requestDate = report.createdAt ? new Date(report.createdAt) : new Date();
-    const formatNumber = (value: number) => new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-    const formatCurrencyForPdf = (value: number, currency: Currency) => `${currency} ${formatNumber(value)}`;
-    const escapeHtml = (value: string) => value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-    const hasHebrew = (value: string) => /[\u0590-\u05FF]/.test(value);
-
-    const buildRows = (items: ExpenseItem[], currency: Currency) => items
-      .map(item => {
-        const description = escapeHtml(item.description);
-        const descriptionCell = hasHebrew(item.description)
-          ? `<span dir="rtl" style="display:inline-block; unicode-bidi: plaintext;">${description}</span>`
-          : description;
-        return `
-          <tr>
-            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
-            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb;">${descriptionCell}</td>
-            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.unitPrice, currency)}</td>
-            <td style="padding: 6px 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrencyForPdf(item.lineTotal, currency)}</td>
-          </tr>
-        `;
-      }).join('');
-
-    const buildSection = (title: string, items: ExpenseItem[], total: number, currency: Currency, exchangeRate?: number, totalInNIS?: number) => {
-      if (items.length === 0 && total === 0) return '';
-      return `
-        <div style="margin-top: 20px;">
-          <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">${title}</div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-            <thead>
-              <tr style="background: #f3f4f6;">
-                <th style="text-align: left; padding: 6px 4px;">Qty</th>
-                <th style="text-align: left; padding: 6px 4px;">Description</th>
-                <th style="text-align: right; padding: 6px 4px;">Unit Price</th>
-                <th style="text-align: right; padding: 6px 4px;">Line Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${buildRows(items, currency)}
-            </tbody>
-          </table>
-          <div style="margin-top: 6px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
-            <span style="font-weight: 600;">Total ${currency}:</span>
-            <span style="font-weight: 700;">${formatCurrencyForPdf(total, currency)}</span>
-          </div>
-          ${exchangeRate && totalInNIS !== undefined ? `
-            <div style="margin-top: 4px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
-              <span>Exchange Rate:</span>
-              <span>${exchangeRate}</span>
-            </div>
-            <div style="margin-top: 2px; display: flex; justify-content: flex-end; gap: 16px; font-size: 12px;">
-              <span>Total NIS:</span>
-              <span style="font-weight: 700;">${formatCurrencyForPdf(totalInNIS, 'NIS')}</span>
-            </div>
-          ` : ''}
-        </div>
+      container.innerHTML = `
+        <h1 style="font-size:24px;margin-bottom:8px">${t.expenseReport}</h1>
+        <p style="color:#666;margin-bottom:20px">${report.userName} — ${report.expensePeriod}</p>
+        ${report.checkedBy ? `<p style="font-size:13px;color:#666">${t.checkedBy}: ${report.checkedBy}</p>` : ''}
+        ${report.approvedBy ? `<p style="font-size:13px;color:#666">${t.approvedBy}: ${report.approvedBy}</p>` : ''}
+        <hr style="margin:20px 0;border:none;border-top:1px solid #ddd">
+        ${report.itemsNIS.length > 0 ? `<h3 style="margin:16px 0 8px">${t.expensesInNIS}</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f5f5f5"><th style="padding:8px 10px;text-align:left;font-size:12px">${t.quantity}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.description}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.unitPrice}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.lineTotal}</th></tr></thead><tbody>${renderItems(report.itemsNIS, 'NIS')}</tbody></table><p style="text-align:right;font-weight:700;margin-top:8px">${t.totalNIS}: ₪${report.totalNIS.toFixed(2)}</p>` : ''}
+        ${report.itemsUSD.length > 0 ? `<h3 style="margin:16px 0 8px">${t.expensesInUSD}</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f5f5f5"><th style="padding:8px 10px;text-align:left;font-size:12px">${t.quantity}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.description}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.unitPrice}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.lineTotal}</th></tr></thead><tbody>${renderItems(report.itemsUSD, 'USD')}</tbody></table><p style="text-align:right;font-weight:700;margin-top:8px">${t.totalUSD}: $${report.totalUSD.toFixed(2)} (${t.exchangeRate}: ${report.exchangeRateUSD}) = ₪${report.totalUSDInNIS.toFixed(2)}</p>` : ''}
+        ${report.itemsEUR.length > 0 ? `<h3 style="margin:16px 0 8px">${t.expensesInEUR}</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f5f5f5"><th style="padding:8px 10px;text-align:left;font-size:12px">${t.quantity}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.description}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.unitPrice}</th><th style="padding:8px 10px;text-align:left;font-size:12px">${t.lineTotal}</th></tr></thead><tbody>${renderItems(report.itemsEUR, 'EUR')}</tbody></table><p style="text-align:right;font-weight:700;margin-top:8px">${t.totalEUR}: €${report.totalEUR.toFixed(2)} (${t.exchangeRate}: ${report.exchangeRateEUR}) = ₪${report.totalEURInNIS.toFixed(2)}</p>` : ''}
+        <hr style="margin:24px 0;border:none;border-top:2px solid #39FF14">
+        <p style="text-align:right;font-size:22px;font-weight:800">${t.grandTotal}: ₪${report.grandTotalNIS.toFixed(2)}</p>
       `;
-    };
+      document.body.appendChild(container);
 
-    const container = document.createElement('div');
-  container.style.fontFamily = 'Rubik, "Noto Sans Hebrew", "Arial", "Segoe UI", "Tahoma", sans-serif';
-    container.style.color = '#111827';
-    container.style.width = '520px';
-    container.innerHTML = `
-      <div style="display: flex; align-items: baseline; gap: 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: #39FF14;">Fitness22</div>
-        <div style="font-size: 20px; color: #6b7280;">Expense Report</div>
-      </div>
-      <div style="margin-top: 16px; font-size: 12px;">
-        <div style="display: flex; justify-content: space-between; gap: 12px;">
-          <div>Employee: ${report.userName}</div>
-          <div>Request Date: ${requestDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        </div>
-        <div style="margin-top: 6px;">Expense Period: ${report.expensePeriod}</div>
-        ${report.checkedBy ? `<div style="margin-top: 8px;">Checked By: ${report.checkedBy}</div>` : ''}
-        ${report.approvedBy ? `<div style="margin-top: 4px;">Approved By: ${report.approvedBy}</div>` : ''}
-      </div>
-      ${buildSection('EXPENSES IN NIS', report.itemsNIS, report.totalNIS, 'NIS')}
-      ${buildSection('EXPENSES IN USD', report.itemsUSD, report.totalUSD, 'USD', report.exchangeRateUSD, report.totalUSDInNIS)}
-      ${buildSection('EXPENSES IN EUR', report.itemsEUR, report.totalEUR, 'EUR', report.exchangeRateEUR, report.totalEURInNIS)}
-      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 16px; font-size: 14px; font-weight: 700; color: #39FF14;">
-        <span>GRAND TOTAL:</span>
-        <span>${formatCurrencyForPdf(report.grandTotalNIS, 'NIS')}</span>
-      </div>
-      <div style="margin-top: 16px; font-size: 11px;">Status: ${report.status.toUpperCase()}</div>
-    `;
-
-    document.body.appendChild(container);
-
-    try {
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      });
-
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 24;
-      const contentWidth = pageWidth - margin * 2;
-      const contentHeight = pageHeight - margin * 2;
-      const scale = contentWidth / canvas.width;
-      const sliceHeight = contentHeight / scale;
-
-      let renderedHeight = 0;
-      let pageIndex = 0;
-
-      while (renderedHeight < canvas.height) {
-        const sliceHeightPx = Math.min(sliceHeight, canvas.height - renderedHeight);
-
-        if (pageIndex > 0) {
-          doc.addPage();
-        }
-
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceHeightPx;
-        const sliceContext = sliceCanvas.getContext('2d');
-
-        if (sliceContext) {
-          sliceContext.drawImage(
-            canvas,
-            0,
-            renderedHeight,
-            canvas.width,
-            sliceHeightPx,
-            0,
-            0,
-            canvas.width,
-            sliceHeightPx,
-          );
-
-          const sliceData = sliceCanvas.toDataURL('image/png');
-
-          doc.addImage(
-            sliceData,
-            'PNG',
-            margin,
-            margin,
-            contentWidth,
-            sliceHeightPx * scale,
-          );
-        }
-
-        renderedHeight += sliceHeightPx;
-        pageIndex += 1;
-      }
-
-      doc.save(`expense_report_${report.userName.replace(/\s+/g, '_')}_${report.month}.pdf`);
-    } finally {
+      const canvas = await html2canvas(container, { scale: 2 });
       document.body.removeChild(container);
+
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let position = 0;
+      const pageHeight = 297;
+
+      while (position < imgHeight) {
+        if (position > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, -position, imgWidth, imgHeight);
+        position += pageHeight;
+      }
+
+      pdf.save(`expense_report_${report.userName}_${report.month}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
     }
-  }, []);
-  
-  // Generate month options
-  const monthOptions = useMemo(() => {
-    const options = [];
-    const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const label = `${t.months[date.getMonth()]} ${date.getFullYear()}`;
-      options.push({ value, label });
+  };
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'green';
+      case 'submitted': return 'yellow';
+      case 'rejected': return 'red';
+      default: return 'gray';
     }
-    return options;
-  }, [t.months]);
-  
+  };
+
+  const iconStyle = { width: 20, height: 20 };
+
+  // Group reports by user
+  const reportsByUser = reports.reduce<Record<string, ExpenseReport[]>>((acc, r) => {
+    if (!acc[r.userId]) acc[r.userId] = [];
+    acc[r.userId].push(r);
+    return acc;
+  }, {});
+
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#39FF14] border-t-transparent"></div>
-      </div>
-    );
+    return <div className="page-section"><div className="app-loading" style={{ minHeight: 200 }}><div className="spinner" /></div></div>;
   }
-  
+
   return (
-    <div className={`space-y-6 px-5 sm:px-8 md:px-12 py-8 md:py-10 ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl font-bold tracking-tight text-[var(--f22-text)]">{t.expenseReports}</h2>
-        
-        <div className="flex items-center gap-4">
-          {/* Month selector */}
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-5 py-3.5 min-h-[52px] text-[15px] bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text)] focus:outline-none focus:ring-2 focus:ring-[#39FF14]/40"
-          >
-            {monthOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          
-          {/* Expand/Collapse buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={expandAll}
-              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
-            >
-              Expand All
-            </button>
-            <button
-              onClick={collapseAll}
-              className="px-3 py-2 text-sm bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl text-[var(--f22-text-muted)] hover:border-[#39FF14] transition-colors"
-            >
-              Collapse All
-            </button>
-          </div>
-        </div>
+    <div className="page-section" ref={printRef}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
+        <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="form-input" style={{ width: 'auto' }} />
+        <span style={{ color: 'var(--f22-text-muted)', fontSize: 14 }}>{reports.length} {t.expenseReports}</span>
       </div>
-      
-      {/* Reports by user */}
-      {reportsByUser.length === 0 ? (
-        <div className="text-center py-12 text-[var(--f22-text-muted)]">
-          {t.noExpenseReports}
-        </div>
+
+      {reports.length === 0 ? (
+        <div className="empty-state"><p>{t.noExpenseReports}</p></div>
       ) : (
-        <div className="space-y-4">
-          {reportsByUser.map(([userId, { user: reportUser, reports: userReports }]) => (
-            <div
-              key={userId}
-              className="bg-[var(--f22-surface)] rounded-2xl border border-[var(--f22-border)] overflow-hidden"
-            >
-              {/* User header - clickable to expand/collapse */}
-              <button
-                onClick={() => toggleUserExpansion(userId)}
-                className="w-full flex items-center justify-between p-4 hover:bg-[var(--f22-surface-elevated)] transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 bg-[#39FF14]/10 rounded-full flex items-center justify-center text-[#39FF14] font-bold overflow-hidden">
-                    {reportUser?.profilePicture ? (
-                      <img src={reportUser.profilePicture} alt={reportUser.name} className="w-full h-full object-cover" />
-                    ) : (
-                      (reportUser?.name || 'U').charAt(0).toUpperCase()
-                    )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {Object.entries(reportsByUser).map(([userId, userReports]) => {
+            const u = users.find(u => u.id === userId);
+            const isExpanded = expandedUsers.has(userId);
+            const totalExpenses = userReports.reduce((s, r) => s + r.grandTotalNIS, 0);
+            return (
+              <div key={userId} style={{ background: 'var(--f22-surface-light)', borderRadius: 16, border: '1px solid var(--f22-border)', overflow: 'hidden' }}>
+                <button onClick={() => toggleUser(userId)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--f22-text)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="avatar" style={{ width: 32, height: 32, fontSize: 12 }}>
+                      {u?.profilePicture ? <img src={u.profilePicture} alt="" /> : (u?.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 700 }}>{u?.name || t.unknownUser}</span>
+                    <span style={{ color: '#39FF14', fontWeight: 700, fontSize: 14 }}>₪{totalExpenses.toFixed(2)}</span>
                   </div>
-                  
-                  <div className="text-left">
-                    <h3 className="font-semibold text-[var(--f22-text)]">
-                      {reportUser?.name || t.unknownUser}
-                    </h3>
-                    <p className="text-sm text-[var(--f22-text-muted)]">
-                      {userReports.length} {t.expenseReports.toLowerCase()}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Total and expand icon */}
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-bold text-[#39FF14]">
-                    {formatCurrency(
-                      userReports.reduce((sum, r) => sum + r.grandTotalNIS, 0),
-                      'NIS'
-                    )}
-                  </span>
-                  
-                  <svg
-                    className={`w-5 h-5 text-[var(--f22-text-muted)] transition-transform ${
-                      expandedUsers.has(userId) ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
-              
-              {/* Expanded content */}
-              {expandedUsers.has(userId) && (
-                <div className="border-t border-[var(--f22-border-subtle)]">
-                  {userReports.map((report) => (
-                    <div
-                      key={report.id}
-                      className="p-4 border-b border-[var(--f22-border)] last:border-b-0 bg-[var(--f22-surface-light)]"
-                    >
-                      {/* Report header */}
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                        <div>
-                          <h4 className="font-semibold text-[var(--f22-text)]">
-                            {report.expensePeriod}
-                          </h4>
-                          <p className="text-sm text-[var(--f22-text-muted)]">
-                            {t.grandTotal}: {formatCurrency(report.grandTotalNIS, 'NIS')}
-                          </p>
+                  <svg style={{ ...iconStyle, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {isExpanded && (
+                  <div style={{ padding: '0 20px 20px' }}>
+                    {userReports.map(report => (
+                      <div key={report.id} style={{ background: 'var(--f22-surface)', borderRadius: 12, padding: 20, border: '1px solid var(--f22-border)', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--f22-text)' }}>{report.expensePeriod}</div>
+                            <span className={`status-chip ${statusColor(report.status)}`}>{t[report.status as keyof typeof t] as string}</span>
+                          </div>
+                          <div style={{ fontWeight: 800, fontSize: 20, color: '#39FF14' }}>₪{report.grandTotalNIS.toFixed(2)}</div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {/* PDF download */}
-                          <button
-                            onClick={() => generatePDF(report)}
-                            className="px-5 py-2.5 min-h-[44px] text-sm bg-[#39FF14] text-[#0D0D0D] rounded-xl font-semibold hover:brightness-110 transition-colors flex items-center gap-2 shadow-[var(--shadow-glow)]"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            PDF
-                          </button>
-                          {getInvoiceItems(report).length > 0 && (
-                            <button
-                              onClick={() => handleDownloadInvoices(report)}
-                              className="px-4 py-2.5 min-h-[44px] text-sm bg-[var(--f22-surface)] text-[var(--f22-text)] rounded-xl hover:border-[#39FF14] border border-[var(--f22-border)] transition-colors flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M14 14l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {t.viewInvoice}
-                            </button>
+
+                        {/* Summary lines */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 13, color: 'var(--f22-text-muted)', marginBottom: 16 }}>
+                          {report.totalNIS > 0 && <span>NIS: ₪{report.totalNIS.toFixed(2)}</span>}
+                          {report.totalUSD > 0 && <span>USD: ${report.totalUSD.toFixed(2)} (x{report.exchangeRateUSD}) = ₪{report.totalUSDInNIS.toFixed(2)}</span>}
+                          {report.totalEUR > 0 && <span>EUR: €{report.totalEUR.toFixed(2)} (x{report.exchangeRateEUR}) = ₪{report.totalEURInNIS.toFixed(2)}</span>}
+                        </div>
+                        {report.checkedBy && <div style={{ fontSize: 12, color: 'var(--f22-text-muted)' }}>{t.checkedBy}: {report.checkedBy}</div>}
+                        {report.approvedBy && <div style={{ fontSize: 12, color: 'var(--f22-text-muted)' }}>{t.approvedBy}: {report.approvedBy}</div>}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                          {report.status === 'submitted' && (
+                            <>
+                              <button onClick={() => handleApprove(report.id)} className="btn-sm green">{t.approveReport}</button>
+                              <button onClick={() => handleReject(report.id)} className="btn-sm danger">{t.rejectReport}</button>
+                            </>
                           )}
-                          <button
-                            onClick={() => handleDeleteReport(report.id)}
-                            className="px-4 py-2.5 min-h-[44px] text-sm bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                          <button onClick={() => handleGeneratePDF(report)} className="btn-sm ghost">
+                            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            {t.downloadPDF}
+                          </button>
+                          <button onClick={() => handleDeleteReport(report.id)} className="btn-sm danger">
+                            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             {t.deleteReport}
                           </button>
                         </div>
                       </div>
-                      
-                      {/* Expense summary tables */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* NIS */}
-                        {report.itemsNIS.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
-                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">NIS</h5>
-                            <div className="space-y-1">
-                              {report.itemsNIS.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm">
-                                  <span className="text-[var(--f22-text)] truncate max-w-[150px]">{item.description}</span>
-                                  <span className="text-[var(--f22-text)]">{formatCurrency(item.lineTotal, 'NIS')}</span>
-                                </div>
-                              ))}
-                              <div className="border-t border-[var(--f22-border)] pt-1 mt-1 flex justify-between font-medium">
-                                <span>{t.total}</span>
-                                <span className="text-[#39FF14]">{formatCurrency(report.totalNIS, 'NIS')}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* USD */}
-                        {report.itemsUSD.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
-                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">USD</h5>
-                            <div className="space-y-1">
-                              {report.itemsUSD.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm">
-                                  <span className="text-[var(--f22-text)] truncate max-w-[150px]">{item.description}</span>
-                                  <span className="text-[var(--f22-text)]">{formatCurrency(item.lineTotal, 'USD')}</span>
-                                </div>
-                              ))}
-                              <div className="border-t border-[var(--f22-border)] pt-1 mt-1">
-                                <div className="flex justify-between text-sm text-[var(--f22-text-muted)]">
-                                  <span>{t.exchangeRate}</span>
-                                  <span>{report.exchangeRateUSD}</span>
-                                </div>
-                                <div className="flex justify-between font-medium">
-                                  <span>{t.totalNIS}</span>
-                                  <span className="text-[#39FF14]">{formatCurrency(report.totalUSDInNIS, 'NIS')}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* EUR */}
-                        {report.itemsEUR.length > 0 && (
-                          <div className="bg-[var(--f22-surface)] rounded-xl p-3">
-                            <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">EUR</h5>
-                            <div className="space-y-1">
-                              {report.itemsEUR.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm">
-                                  <span className="text-[var(--f22-text)] truncate max-w-[150px]">{item.description}</span>
-                                  <span className="text-[var(--f22-text)]">{formatCurrency(item.lineTotal, 'EUR')}</span>
-                                </div>
-                              ))}
-                              <div className="border-t border-[var(--f22-border)] pt-1 mt-1">
-                                <div className="flex justify-between text-sm text-[var(--f22-text-muted)]">
-                                  <span>{t.exchangeRate}</span>
-                                  <span>{report.exchangeRateEUR}</span>
-                                </div>
-                                <div className="flex justify-between font-medium">
-                                  <span>{t.totalNIS}</span>
-                                  <span className="text-[#39FF14]">{formatCurrency(report.totalEURInNIS, 'NIS')}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Invoices section */}
-                      {getInvoiceItems(report).length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-[var(--f22-border-subtle)]">
-                          <h5 className="text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-muted)] mb-2">Invoices</h5>
-                          <div className="flex flex-wrap gap-2">
-                            {getInvoiceItems(report)
-                              .map((item, index) => (
-                                <button
-                                  key={item.id}
-                                  onClick={() => handleDownloadInvoiceItem(report, item, index)}
-                                  className="px-3 py-1 text-xs bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-xl hover:border-[#39FF14] transition-colors flex items-center gap-1"
-                                >
-                                  📎 {item.description.substring(0, 20)}{item.description.length > 20 ? '...' : ''}
-                                </button>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

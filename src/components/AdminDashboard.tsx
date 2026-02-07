@@ -1,25 +1,13 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Shift, User, ActiveShift } from '../types';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { 
-  adminCreateUser, 
-  adminToggleUserAdmin, 
-  adminUpdateUserDepartment,
-  adminDeleteUser,
-  isUserAdmin,
-  isPrimaryAdmin,
-  DEPARTMENTS,
-  validateAdminAsync,
-  syncUsersFromSupabase,
-} from '../utils/auth';
-import { getShifts, updateShift, deleteShift, getActiveShift, syncShiftsFromSupabase, subscribeToShiftChanges } from '../utils/storage';
-import { supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
+import { validateAdminAsync, DEPARTMENTS, isPrimaryAdmin } from '../utils/auth';
+import { supabaseShifts, supabaseUsers, supabaseActiveShift, isSupabaseConfigured } from '../utils/supabase';
 import { generateAdminExcel } from '../utils/excel';
+import { updateShift, deleteShift } from '../utils/storage';
 import AdminExpenseReports from './AdminExpenseReports';
+import type { User, Shift, ActiveShift } from '../types';
 
-interface AdminDashboardProps {
-  user: User;
-}
+interface AdminDashboardProps { user: User; }
 
 type AdminTab = 'users' | 'shifts' | 'live' | 'expenses';
 
@@ -34,766 +22,371 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
-  
-  // New user form
+
+  // Add user modal
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserDepartment, setNewUserDepartment] = useState('');
-  const [formError, setFormError] = useState('');
-  
+  const [newUserDept, setNewUserDept] = useState('');
+
   // Edit shift modal
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [editCheckIn, setEditCheckIn] = useState('');
-  const [editCheckOut, setEditCheckOut] = useState('');
-  const [editNote, setEditNote] = useState('');
-  const [editBreakMinutes, setEditBreakMinutes] = useState(0);
+  const [editForm, setEditForm] = useState({ checkIn: '', checkOut: '', note: '', breakMinutes: 0 });
 
-  // Expanded users for collapsible shifts view
+  // Expanded users in shifts view
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
-  // Toggle user expansion
-  const toggleUserExpansion = (userId: string) => {
-    setExpandedUsers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
-  };
-
-  // Group shifts by user
-  const shiftsByUser = useMemo(() => {
-    const grouped: Record<string, { user: User | undefined; shifts: Shift[]; totalHours: number }> = {};
-    
-    for (const shift of shifts) {
-      if (!grouped[shift.userId]) {
-        grouped[shift.userId] = {
-          user: users.find(u => u.id === shift.userId),
-          shifts: [],
-          totalHours: 0,
-        };
-      }
-      grouped[shift.userId].shifts.push(shift);
-      grouped[shift.userId].totalHours += (shift.duration - (shift.breakMinutes || 0)) / 60;
-    }
-    
-    // Sort by user name
-    return Object.entries(grouped)
-      .sort(([, a], [, b]) => (a.user?.name || '').localeCompare(b.user?.name || ''));
-  }, [shifts, users]);
-
-  // SECURITY: Verify admin status on mount and periodically
-  useEffect(() => {
-    const verifyAdmin = async () => {
-      const isAdmin = await validateAdminAsync(user);
-      setIsAdminVerified(isAdmin);
-      
-      if (!isAdmin) {
-        console.error('SECURITY: User attempted to access admin dashboard without admin privileges');
-        // The parent component should handle the redirect, but we block rendering
-      }
-    };
-    
-    verifyAdmin();
-    
-    // Re-verify every 30 seconds
-    const interval = setInterval(verifyAdmin, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  // Load data
   const loadUsers = useCallback(async () => {
-    const syncedUsers = await syncUsersFromSupabase();
-    setUsers(syncedUsers);
+    if (isSupabaseConfigured()) {
+      const all = await supabaseUsers.getAll();
+      setUsers(all.filter(u => !u.isDisabled));
+    }
   }, []);
-
-  const filterShiftsForMonth = useCallback((allShifts: Shift[]) => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const filtered = allShifts.filter(s => {
-      const shiftDate = new Date(s.date);
-      return shiftDate.getFullYear() === year && shiftDate.getMonth() === month - 1;
-    });
-    
-    // Sort by user name (alphabetically), then by date (newest first)
-    filtered.sort((a, b) => {
-      const nameCompare = a.userName.localeCompare(b.userName);
-      if (nameCompare !== 0) return nameCompare;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-    
-    return filtered;
-  }, [selectedMonth]);
 
   const loadShifts = useCallback(async () => {
-    await syncShiftsFromSupabase();
-    setShifts(filterShiftsForMonth(getShifts()));
-  }, [filterShiftsForMonth]);
+    const [year, month] = selectedMonth.split('-').map(Number);
+    if (isSupabaseConfigured()) {
+      const all = await supabaseShifts.getForMonth(year, month - 1);
+      setShifts(all);
+    }
+  }, [selectedMonth]);
 
   const loadActiveShifts = useCallback(async () => {
-    // Try Supabase first for all active shifts
     if (isSupabaseConfigured()) {
-      const active = await supabaseActiveShift.getAll();
-      setActiveShifts(active);
-    } else {
-      // Fallback: Check localStorage for current user's active shift
-      // Note: In localStorage mode, we can only see our own active shift
-      const localActive = getActiveShift();
-      setActiveShifts(localActive ? [localActive] : []);
+      const all = await supabaseActiveShift.getAll();
+      setActiveShifts(all);
     }
   }, []);
 
   useEffect(() => {
-    // Only load data if admin is verified
-    if (!isAdminVerified) return;
-    
-    void loadUsers();
-    void loadShifts();
-    void loadActiveShifts();
-    
-    // Subscribe to realtime active shifts changes
-    const subscription = supabaseActiveShift.subscribeToChanges((newShifts) => {
-      setActiveShifts(newShifts);
-    });
-
-    const shiftsSubscription = subscribeToShiftChanges((updatedShifts) => {
-      setShifts(filterShiftsForMonth(updatedShifts));
-    });
-    
-    return () => {
-      subscription?.unsubscribe();
-      shiftsSubscription?.unsubscribe();
+    const verify = async () => {
+      const valid = await validateAdminAsync(user);
+      setIsAdminVerified(valid);
     };
-  }, [loadUsers, loadShifts, loadActiveShifts, filterShiftsForMonth, isAdminVerified]);
+    verify();
+  }, [user]);
 
   useEffect(() => {
-    if (isAdminVerified) {
-      void loadShifts();
-    }
-  }, [selectedMonth, loadShifts, isAdminVerified]);
+    if (!isAdminVerified) return;
+    loadUsers();
+    loadShifts();
+    loadActiveShifts();
+  }, [isAdminVerified, loadUsers, loadShifts, loadActiveShifts]);
 
-  // SECURITY: Early return if not verified admin - show nothing
-  if (!isAdminVerified) {
-    // First check synchronously as a fast path
-    if (!isUserAdmin(user)) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center text-[var(--f22-text-muted)]">
-            <p>{t.notAuthorized}</p>
-          </div>
-        </div>
-      );
-    }
-    // Show loading while async verification completes
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#39FF14] border-t-transparent"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const channel = supabaseActiveShift.subscribeToChanges((shifts) => setActiveShifts(shifts));
+    return () => { channel?.unsubscribe(); };
+  }, []);
 
-  // Check if current user is primary admin
-  const isPrimary = isPrimaryAdmin(user.email);
-
-  // Create new user
   const handleCreateUser = async () => {
-    setFormError('');
-    
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) {
-      setFormError(t.nameRequired);
-      return;
-    }
-    
-    if (newUserPassword.length < 6) {
-      setFormError(t.passwordTooShort);
-      return;
-    }
-    
-    const result = await adminCreateUser(user, newUserName, newUserEmail, newUserPassword, newUserDepartment);
-    
-    if (result.success) {
-      setShowAddUser(false);
-      setNewUserName('');
-      setNewUserEmail('');
-      setNewUserPassword('');
-      setNewUserDepartment('');
-      void loadUsers();
-      alert(t.userCreated);
-    } else {
-      setFormError(result.error === 'emailExists' ? t.emailExists : t.notAuthorized);
-    }
+    if (!newUserName || !newUserEmail || !newUserPassword) return;
+    const newUser: User = {
+      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: newUserName, email: newUserEmail.toLowerCase(), password: newUserPassword,
+      createdAt: new Date().toISOString(), department: newUserDept || undefined,
+    };
+    await supabaseUsers.create(newUser);
+    setShowAddUser(false);
+    setNewUserName(''); setNewUserEmail(''); setNewUserPassword(''); setNewUserDept('');
+    loadUsers();
   };
 
-  // Toggle admin status
-  const handleToggleAdmin = async (targetUserId: string, makeAdmin: boolean) => {
-    const result = await adminToggleUserAdmin(user, targetUserId, makeAdmin);
-    if (result.success) {
-      void loadUsers();
-    } else {
-      alert(result.error === 'onlyPrimaryAdmin' ? t.onlyPrimaryAdmin : t.notAuthorized);
-    }
+  const handleToggleAdmin = async (u: User) => {
+    if (isPrimaryAdmin(u.email)) return;
+    const updated = { ...u, isAdmin: !u.isAdmin };
+    await supabaseUsers.upsert(updated);
+    loadUsers();
   };
 
-  // Update department
-  const handleUpdateDepartment = async (targetUserId: string, department: string) => {
-    const result = await adminUpdateUserDepartment(user, targetUserId, department);
-    if (result.success) {
-      void loadUsers();
-    } else {
-      alert(t.onlyPrimaryAdmin);
-    }
+  const handleUpdateDepartment = async (u: User, dept: string) => {
+    const updated = { ...u, department: dept || undefined };
+    await supabaseUsers.upsert(updated);
+    loadUsers();
   };
 
-  // Delete user permanently
-  const handleDeleteUser = async (targetUserId: string) => {
+  const handleDeleteUser = async (u: User) => {
+    if (isPrimaryAdmin(u.email)) return;
+    if (u.id === user.id) return;
     if (!confirm(t.confirmDeleteUser)) return;
-    
-    const result = await adminDeleteUser(user, targetUserId);
-    if (result.success) {
-      void loadUsers();
-    } else {
-      if (result.error === 'cannotDeletePrimaryAdmin') {
-        alert(t.cannotDeletePrimaryAdmin);
-      } else if (result.error === 'cannotDeleteSelf') {
-        alert(t.cannotDeleteSelf);
-      } else {
-        alert(t.notAuthorized);
-      }
-    }
+    await supabaseUsers.deleteUserShifts(u.id);
+    await supabaseUsers.delete(u.id);
+    loadUsers();
   };
 
-  // Export to Excel
   const handleExportExcel = () => {
-    if (shifts.length === 0) {
-      alert(t.noShiftsToExport);
-      return;
-    }
-    
     const [year, month] = selectedMonth.split('-').map(Number);
-    const monthNames = language === 'he' 
-      ? ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
-      : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    const monthYear = `${monthNames[month - 1]} ${year}`;
+    const monthYear = `${t.months[month - 1]} ${year}`;
+    if (shifts.length === 0) { alert(t.noShiftsToExport); return; }
     generateAdminExcel(shifts, users, monthYear, language);
   };
 
-  // Edit shift
   const openEditShift = (shift: Shift) => {
+    const fmt = (iso: string | null) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    };
+    setEditForm({ checkIn: fmt(shift.checkIn), checkOut: fmt(shift.checkOut), note: shift.note, breakMinutes: shift.breakMinutes || 0 });
     setEditingShift(shift);
-    setEditCheckIn(new Date(shift.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }));
-    setEditCheckOut(shift.checkOut ? new Date(shift.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
-    setEditNote(shift.note);
-    setEditBreakMinutes(shift.breakMinutes || 0);
   };
 
   const handleSaveShift = () => {
     if (!editingShift) return;
-    
-    const checkInDate = new Date(`${editingShift.date}T${editCheckIn}:00`);
-    const checkOutDate = editCheckOut ? new Date(`${editingShift.date}T${editCheckOut}:00`) : null;
-    
-    const duration = checkOutDate 
-      ? Math.round((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60))
-      : 0;
-    
-    const updatedShift: Shift = {
+    const d = new Date(editingShift.date + 'T00:00:00');
+    const [h1, m1] = editForm.checkIn.split(':').map(Number);
+    const [h2, m2] = editForm.checkOut ? editForm.checkOut.split(':').map(Number) : [0, 0];
+    const checkInDate = new Date(d); checkInDate.setHours(h1, m1, 0);
+    const checkOutDate = editForm.checkOut ? new Date(d) : null;
+    if (checkOutDate) checkOutDate.setHours(h2, m2, 0);
+    const totalMin = checkOutDate ? Math.floor((checkOutDate.getTime() - checkInDate.getTime()) / 60000) : 0;
+    const netMin = Math.max(totalMin - editForm.breakMinutes, 0);
+
+    const updated: Shift = {
       ...editingShift,
       checkIn: checkInDate.toISOString(),
-      checkOut: checkOutDate?.toISOString() || null,
-      note: editNote,
-      duration: Math.max(0, duration),
-      breakMinutes: editBreakMinutes,
+      checkOut: checkOutDate?.toISOString() ?? null,
+      note: editForm.note,
+      duration: netMin,
+      breakMinutes: editForm.breakMinutes || undefined,
     };
-    
-    updateShift(updatedShift);
+    updateShift(updated);
     setEditingShift(null);
-    void loadShifts();
+    loadShifts();
   };
 
   const handleDeleteShift = (shiftId: string) => {
-    if (confirm(t.confirmDelete)) {
-      deleteShift(shiftId);
-      void loadShifts();
-    }
+    if (!confirm(t.confirmDelete)) return;
+    deleteShift(shiftId);
+    loadShifts();
   };
 
-  // Format date for display (DD/MM/YYYY)
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
   };
 
-  // Format time for display (HH:MMAM/PM)
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    const hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const suffix = hours >= 12 ? 'PM' : 'AM';
-    const hh = String(hours).padStart(2, '0');
-    return `${hh}:${minutes}${suffix}`;
+  const formatTime = (isoStr: string | null) => {
+    if (!isoStr) return '--:--';
+    const d = new Date(isoStr);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+  const formatDuration = (minutes: number) => `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+
+  const toggleExpandUser = (userId: string) => {
+    setExpandedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
   };
+
+  // Group shifts by user
+  const shiftsByUser = shifts.reduce<Record<string, Shift[]>>((acc, shift) => {
+    if (!acc[shift.userId]) acc[shift.userId] = [];
+    acc[shift.userId].push(shift);
+    return acc;
+  }, {});
+
+  const iconStyle = { width: 20, height: 20 };
+
+  if (!isAdminVerified) {
+    return (
+      <div className="page-section">
+        <div className="empty-state">
+          <svg style={{ width: 48, height: 48 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <p>{t.notAuthorized}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full min-h-[calc(100vh-72px)] px-5 sm:px-8 md:px-12 py-4 sm:py-6">
-      {/* Header */}
-      <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-2xl p-4 sm:p-6 mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--f22-text)] flex items-center gap-3">
-          <svg className="w-6 h-6 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          {t.adminDashboard}
-        </h2>
-      </div>
-
+    <div style={{ minHeight: 'calc(100vh - 72px)' }}>
       {/* Tabs */}
-      <div className="flex gap-3 mb-6 overflow-x-auto">
-        {[
-          { id: 'users' as AdminTab, label: t.allEmployees },
-          { id: 'shifts' as AdminTab, label: t.allShifts },
-          { id: 'live' as AdminTab, label: t.liveCheckIns },
-          { id: 'expenses' as AdminTab, label: t.expenseReports },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 min-h-[44px] rounded-xl font-semibold whitespace-nowrap transition-all text-sm ${
-              activeTab === tab.id
-                ? 'bg-[#39FF14] text-[#0D0D0D] shadow-[var(--shadow-glow)]'
-                : 'bg-[var(--f22-surface)] text-[var(--f22-text-secondary)] border border-[var(--f22-border)] hover:border-[#39FF14]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="page-section" style={{ paddingBottom: 0 }}>
+        <h3 className="section-heading">
+          <span className="section-icon">
+            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          </span>
+          {t.adminDashboard}
+        </h3>
+        <div className="tabs">
+          {(['users', 'shifts', 'live', 'expenses'] as AdminTab[]).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`tab ${activeTab === tab ? 'active' : ''}`}>
+              {tab === 'users' ? t.allEmployees : tab === 'shifts' ? t.allShifts : tab === 'live' ? t.liveCheckIns : t.expenseReports}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-2xl p-6 sm:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold tracking-tight text-[var(--f22-text)]">{t.userManagement}</h3>
-            <button
-              onClick={() => setShowAddUser(true)}
-              className="bg-[#39FF14] text-[#0D0D0D] px-3 py-2 lg:px-4 lg:py-2.5 min-h-[44px] rounded-xl font-semibold hover:brightness-110 transition-all flex items-center gap-2 text-sm shadow-[var(--shadow-glow)]"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
+        <div className="page-section">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+            <button onClick={() => setShowAddUser(true)} className="btn-sm green">
+              <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               {t.addUser}
             </button>
           </div>
 
-          {/* Add User Modal */}
-          {showAddUser && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-[var(--f22-surface)] rounded-2xl p-7 md:p-9 w-full max-w-md border border-[var(--f22-border)]">
-                <h4 className="text-lg font-bold tracking-tight text-[var(--f22-text)] mb-4">{t.addUser}</h4>
-                
-                {formError && (
-                  <div className="bg-red-500/10 text-red-500 px-4 py-2 rounded-xl mb-4">
-                    {formError}
-                  </div>
-                )}
-                
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder={t.fullName}
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                  />
-                  <input
-                    type="email"
-                    placeholder={t.email}
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                  />
-                  <input
-                    type="password"
-                    placeholder={t.password}
-                    value={newUserPassword}
-                    onChange={(e) => setNewUserPassword(e.target.value)}
-                    className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                  />
-                  <select
-                    value={newUserDepartment}
-                    onChange={(e) => setNewUserDepartment(e.target.value)}
-                    className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                  >
-                    <option value="">{t.selectDepartment}</option>
-                    {DEPARTMENTS.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handleCreateUser}
-                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-xl font-semibold hover:brightness-110 shadow-[var(--shadow-glow)]"
-                  >
-                    {t.save}
-                  </button>
-                  <button
-                    onClick={() => { setShowAddUser(false); setFormError(''); }}
-                    className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text)] py-3 rounded-xl font-semibold border border-[var(--f22-border)] hover:bg-[var(--f22-surface-elevated)]"
-                  >
-                    {t.cancel}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Users List */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-separate border-spacing-y-3">
-              <thead>
-                <tr>
-                  <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.fullName}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.email}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.department}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.admin}</th>
-                  {isPrimary && <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.actions}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td className="py-4 px-4 text-[var(--f22-text)] bg-[var(--f22-surface-light)] border-y border-l border-[var(--f22-border)] rounded-l-xl">
-                      {u.name}
-                    </td>
-                    <td className="py-4 px-4 text-[var(--f22-text-muted)] bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">{u.email}</td>
-                    <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                      {isPrimary ? (
-                        <select
-                          value={u.department || ''}
-                          onChange={(e) => handleUpdateDepartment(u.id, e.target.value)}
-                          className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] rounded px-2 py-1 text-sm"
-                        >
-                          <option value="">-</option>
-                          {DEPARTMENTS.map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-[var(--f22-text-muted)]">{u.department || '-'}</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-[var(--f22-border)]">
-                      {isPrimaryAdmin(u.email) ? (
-                        <span className="bg-[#39FF14] text-[#0D0D0D] px-2 py-1 rounded text-sm">{t.primaryAdmin}</span>
-                      ) : isUserAdmin(u) ? (
-                        <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-sm">{t.admin}</span>
-                      ) : (
-                        <span className="text-[var(--f22-text-muted)]">-</span>
-                      )}
-                    </td>
-                    {isPrimary && (
-                      <td className="py-4 px-4 bg-[var(--f22-surface-light)] border-y border-r border-[var(--f22-border)] rounded-r-xl">
-                        <div className="flex gap-2 flex-wrap">
-                          {!isPrimaryAdmin(u.email) && (
-                            <button
-                              onClick={() => handleToggleAdmin(u.id, !u.isAdmin)}
-                              className={`px-3 py-1 rounded text-sm font-semibold ${
-                                u.isAdmin 
-                                  ? 'bg-red-500/10 text-red-400 hover:bg-red-500/30' 
-                                  : 'bg-[#39FF14] text-[#0D0D0D] hover:brightness-110'
-                              }`}
-                            >
-                              {u.isAdmin ? t.removeAdmin : t.makeAdmin}
-                            </button>
-                          )}
-                          {!isPrimaryAdmin(u.email) && u.id !== user.id && (
-                            <button
-                              onClick={() => handleDeleteUser(u.id)}
-                              className="px-3 py-1 rounded text-sm font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/30"
-                            >
-                              {t.deleteUser}
-                            </button>
-                          )}
+          {users.length === 0 ? (
+            <div className="empty-state"><p>{t.noUsersFound}</p></div>
+          ) : (
+            <div className="data-table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t.fullName}</th>
+                    <th>{t.email}</th>
+                    <th>{t.department}</th>
+                    <th>{t.admin}</th>
+                    <th>{t.actions}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id}>
+                      <td style={{ fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="avatar" style={{ width: 32, height: 32, fontSize: 12 }}>
+                            {u.profilePicture ? <img src={u.profilePicture} alt={u.name} /> : u.name.charAt(0).toUpperCase()}
+                          </div>
+                          {u.name}
+                          {isPrimaryAdmin(u.email) && <span className="status-chip green">{t.primaryAdmin}</span>}
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <td style={{ color: 'var(--f22-text-muted)' }}>{u.email}</td>
+                      <td>
+                        <select value={u.department || ''} onChange={e => handleUpdateDepartment(u, e.target.value)} className="form-select" style={{ minWidth: 120 }}>
+                          <option value="">{t.selectDepartment}</option>
+                          {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        {isPrimaryAdmin(u.email) ? (
+                          <span className="status-chip green">{t.admin}</span>
+                        ) : (
+                          <button onClick={() => handleToggleAdmin(u)} className={`btn-sm ${u.isAdmin ? 'danger' : 'green'}`}>
+                            {u.isAdmin ? t.removeAdmin : t.makeAdmin}
+                          </button>
+                        )}
+                      </td>
+                      <td>
+                        {!isPrimaryAdmin(u.email) && u.id !== user.id && (
+                          <button onClick={() => handleDeleteUser(u)} className="btn-sm danger">
+                            <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            {t.deleteUser}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* Shifts Tab */}
       {activeTab === 'shifts' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-2xl p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h3 className="text-lg font-bold tracking-tight text-[var(--f22-text)]">{t.allShifts}</h3>
-            <div className="flex flex-wrap gap-3">
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-              />
-              <button
-                onClick={handleExportExcel}
-                className="bg-[#39FF14] text-[#0D0D0D] px-4 py-2 rounded-xl font-semibold hover:brightness-110 flex items-center gap-2 shadow-[var(--shadow-glow)]"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                {t.exportExcel}
-              </button>
-            </div>
+        <div className="page-section">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 20 }}>
+            <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="form-input" style={{ width: 'auto' }} />
+            <button onClick={handleExportExcel} className="btn-sm green">
+              <svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              {t.exportExcel}
+            </button>
           </div>
 
-          {/* Edit Shift Modal */}
-          {editingShift && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-[var(--f22-surface)] rounded-2xl p-7 md:p-9 w-full max-w-md border border-[var(--f22-border)]">
-                <h4 className="text-lg font-bold tracking-tight text-[var(--f22-text)] mb-4">{t.editShift}</h4>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)] mb-1">{t.checkInTime}</label>
-                    <input
-                      type="time"
-                      value={editCheckIn}
-                      onChange={(e) => setEditCheckIn(e.target.value)}
-                      className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)] mb-1">{t.checkOutTime}</label>
-                    <input
-                      type="time"
-                      value={editCheckOut}
-                      onChange={(e) => setEditCheckOut(e.target.value)}
-                      className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)] mb-1">{t.breakMinutes}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editBreakMinutes}
-                      onChange={(e) => setEditBreakMinutes(parseInt(e.target.value) || 0)}
-                      className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 min-h-[52px] focus:ring-2 focus:ring-[#39FF14]/40"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)] mb-1">{t.note}</label>
-                    <textarea
-                      value={editNote}
-                      onChange={(e) => setEditNote(e.target.value)}
-                      className="w-full bg-[var(--f22-surface-light)] border border-[var(--f22-border)] text-[var(--f22-text)] text-[15px] rounded-xl px-5 py-3.5 focus:ring-2 focus:ring-[#39FF14]/40 resize-none"
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handleSaveShift}
-                    className="flex-1 bg-[#39FF14] text-[#0D0D0D] py-3 rounded-xl font-semibold hover:brightness-110 shadow-[var(--shadow-glow)]"
-                  >
-                    {t.save}
-                  </button>
-                  <button
-                    onClick={() => setEditingShift(null)}
-                    className="flex-1 bg-[var(--f22-surface-light)] text-[var(--f22-text)] py-3 rounded-xl font-semibold border border-[var(--f22-border)] hover:bg-[var(--f22-surface-elevated)]"
-                  >
-                    {t.cancel}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Shifts by User - Collapsible */}
-          <div className="space-y-3">
-            {shiftsByUser.length === 0 ? (
-              <div className="py-8 text-center text-[var(--f22-text-muted)]">
-                {t.noShiftsToShow}
-              </div>
-            ) : (
-              shiftsByUser.map(([odUserId, { user: shiftUser, shifts: userShifts, totalHours }]) => (
-                <div key={odUserId} className="border border-[var(--f22-border)] rounded-xl overflow-hidden">
-                  {/* User Header - Click to expand */}
-                  <button
-                    onClick={() => toggleUserExpansion(odUserId)}
-                    className="w-full flex items-center justify-between p-4 bg-[var(--f22-surface-light)] hover:bg-[var(--f22-surface)] transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#39FF14]/10 flex items-center justify-center">
-                        {shiftUser?.profilePicture ? (
-                          <img src={shiftUser.profilePicture} alt={shiftUser.name} className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                          <span className="text-[#39FF14] font-bold">
-                            {(shiftUser?.name || userShifts[0]?.userName || '?').charAt(0).toUpperCase()}
-                          </span>
-                        )}
+          {Object.keys(shiftsByUser).length === 0 ? (
+            <div className="empty-state"><p>{t.noShiftsToShow}</p></div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {Object.entries(shiftsByUser).map(([userId, userShifts]) => {
+                const u = users.find(u => u.id === userId);
+                const isExpanded = expandedUsers.has(userId);
+                const totalHours = (userShifts.reduce((s, sh) => s + sh.duration, 0) / 60).toFixed(1);
+                return (
+                  <div key={userId} style={{ background: 'var(--f22-surface-light)', borderRadius: 16, border: '1px solid var(--f22-border)', overflow: 'hidden' }}>
+                    <button onClick={() => toggleExpandUser(userId)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--f22-text)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="avatar" style={{ width: 32, height: 32, fontSize: 12 }}>
+                          {u?.profilePicture ? <img src={u.profilePicture} alt="" /> : (u?.name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontWeight: 700 }}>{u?.name || t.unknownUser}</span>
+                        <span style={{ color: 'var(--f22-text-muted)', fontSize: 13 }}>({userShifts.length} {t.shifts} · {totalHours}h)</span>
                       </div>
-                      <div className="text-left">
-                        <span className="text-[var(--f22-text)] font-semibold">
-                          {shiftUser?.name || userShifts[0]?.userName || t.unknownUser}
-                        </span>
-                        <div className="text-sm text-[var(--f22-text-muted)]">
-                          {userShifts.length} {t.shifts} • {totalHours.toFixed(1)} {t.hours}
+                      <svg style={{ ...iconStyle, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {isExpanded && (
+                      <div style={{ padding: '0 12px 12px' }}>
+                        <div className="data-table-wrap">
+                          <table className="data-table">
+                            <thead>
+                              <tr><th>{t.date}</th><th>{t.checkInTime}</th><th>{t.checkOutTime}</th><th>{t.duration}</th><th>{t.note}</th><th>{t.actions}</th></tr>
+                            </thead>
+                            <tbody>
+                              {userShifts.map(shift => (
+                                <tr key={shift.id}>
+                                  <td style={{ fontWeight: 600 }}>{formatDate(shift.date)}</td>
+                                  <td><span className="badge-green">{formatTime(shift.checkIn)}</span></td>
+                                  <td><span className={shift.checkOut ? 'badge-red' : 'badge-orange'}>{formatTime(shift.checkOut)}</span></td>
+                                  <td style={{ fontWeight: 600 }}>{formatDuration(shift.duration)}</td>
+                                  <td style={{ color: 'var(--f22-text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shift.note || '-'}</td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      <button onClick={() => openEditShift(shift)} className="shift-action-btn edit"><svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                      <button onClick={() => handleDeleteShift(shift.id)} className="shift-action-btn delete"><svg style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                    </div>
-                    <svg 
-                      className={`w-5 h-5 text-[var(--f22-text-muted)] transition-transform ${expandedUsers.has(odUserId) ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {/* User Shifts - Expandable */}
-                  {expandedUsers.has(odUserId) && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-[var(--f22-bg)]">
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.date}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.checkInTime}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.checkOutTime}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.breakMinutes}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.duration}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.note}</th>
-                            <th className="text-left py-2 px-4 text-xs font-semibold uppercase tracking-wider text-[var(--f22-text-secondary)]">{t.actions}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {userShifts.map(shift => {
-                            const breakMins = shift.breakMinutes || 0;
-                            const netDuration = shift.duration - breakMins;
-                            let displayNote = shift.note || '';
-                            if (displayNote === 'Work from Office' || displayNote === 'עבודה מהמשרד') {
-                              displayNote = '';
-                            }
-                            
-                            return (
-                              <tr key={shift.id} className="border-t border-[var(--f22-border-subtle)]">
-                                <td className="py-3 px-4 text-[var(--f22-text-muted)]">
-                                  {formatDate(shift.date)}
-                                </td>
-                                <td className="py-3 px-4 text-[var(--f22-text)]">{formatTime(shift.checkIn)}</td>
-                                <td className="py-3 px-4 text-[var(--f22-text)]">
-                                  {shift.checkOut ? formatTime(shift.checkOut) : '-'}
-                                </td>
-                                <td className="py-3 px-4 text-[var(--f22-text-muted)]">{breakMins || '-'}</td>
-                                <td className="py-3 px-4 text-[#39FF14] font-medium">
-                                  {formatDuration(Math.max(0, netDuration))}
-                                </td>
-                                <td className="py-3 px-4 text-[var(--f22-text-muted)] max-w-[200px] truncate">
-                                  {displayNote || '-'}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => openEditShift(shift)}
-                                      className="p-2 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                      </svg>
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteShift(shift.id)}
-                                      className="p-2 rounded bg-red-500/10 text-red-400 hover:bg-red-500/30"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* Live Check-ins Tab */}
       {activeTab === 'live' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-2xl p-6 sm:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold tracking-tight text-[var(--f22-text)] flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#39FF14] animate-pulse"></span>
-              {t.checkedInToday}
-            </h3>
-            <button
-              onClick={loadActiveShifts}
-              className="bg-[var(--f22-surface-light)] text-[var(--f22-text-secondary)] px-4 py-2 rounded-xl border border-[var(--f22-border)] hover:bg-[var(--f22-surface-elevated)]"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-
+        <div className="page-section">
+          <h4 style={{ fontWeight: 700, fontSize: 18, color: 'var(--f22-text)', marginBottom: 20 }}>{t.checkedInToday}</h4>
           {activeShifts.length === 0 ? (
-            <div className="text-center py-12 text-[var(--f22-text-muted)]">
-              <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <p>{t.noOneCheckedIn}</p>
-            </div>
+            <div className="empty-state"><p>{t.noOneCheckedIn}</p></div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeShifts.map(shift => {
-                const checkInDate = new Date(shift.checkIn);
-                const now = new Date();
-                const duration = Math.round((now.getTime() - checkInDate.getTime()) / (1000 * 60));
-                
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+              {activeShifts.map(as => {
+                const u = users.find(u => u.id === as.userId);
+                const elapsed = Math.floor((Date.now() - as.startTime) / 60000);
                 return (
-                  <div
-                    key={shift.userId}
-                    className="bg-[var(--f22-surface-light)] border border-[var(--f22-border)] rounded-xl p-4 flex items-center gap-4"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#39FF14]/10 flex items-center justify-center">
-                      <span className="text-[#39FF14] text-lg font-bold">
-                        {shift.userName.charAt(0).toUpperCase()}
-                      </span>
+                  <div key={as.userId} style={{ background: 'var(--f22-surface-light)', border: '1px solid rgba(57,255,20,.2)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="avatar" style={{ width: 40, height: 40 }}>
+                        {u?.profilePicture ? <img src={u.profilePicture} alt="" /> : as.userName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'var(--f22-text)' }}>{as.userName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--f22-text-muted)' }}>{u?.department || ''}</div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-[var(--f22-text)]">{shift.userName}</p>
-                      <p className="text-sm text-[var(--f22-text-muted)]">
-                        {t.checkInTime}: {formatTime(shift.checkIn)}
-                      </p>
-                      <p className="text-sm text-[#39FF14]">
-                        {t.workingFor} {formatDuration(duration)}
-                      </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--f22-text-muted)' }}>{t.checkInTime}:</span>
+                      <span className="badge-green" style={{ fontSize: 12, padding: '4px 12px' }}>{formatTime(as.checkIn)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--f22-text-muted)' }}>{t.workingFor}:</span>
+                      <span style={{ fontWeight: 700, color: '#39FF14' }}>{Math.floor(elapsed / 60)}h {elapsed % 60}m</span>
                     </div>
                   </div>
                 );
@@ -803,10 +396,75 @@ const AdminDashboard = ({ user }: AdminDashboardProps) => {
         </div>
       )}
 
-      {/* Expense Reports Tab */}
-      {activeTab === 'expenses' && (
-        <div className="bg-[var(--f22-surface)] border border-[var(--f22-border)] rounded-2xl p-6 sm:p-8">
-          <AdminExpenseReports user={user} />
+      {/* Expenses Tab */}
+      {activeTab === 'expenses' && <AdminExpenseReports user={user} />}
+
+      {/* Add User Modal */}
+      {showAddUser && (
+        <div className="modal-overlay">
+          <div className="modal-bg-blur" style={{ position: 'absolute', inset: 0 }} onClick={() => setShowAddUser(false)} />
+          <div className="modal-card" style={{ maxWidth: 448, position: 'relative', zIndex: 1 }}>
+            <h3>{t.addUser}</h3>
+            <div className="modal-form">
+              <div className="form-group">
+                <label className="form-label">{t.fullName}</label>
+                <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} className="form-input" placeholder={t.enterName} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.email}</label>
+                <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} className="form-input" placeholder={t.enterEmail} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.password}</label>
+                <input type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} className="form-input" placeholder={t.enterPassword} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.department}</label>
+                <select value={newUserDept} onChange={e => setNewUserDept(e.target.value)} className="form-select">
+                  <option value="">{t.selectDepartment}</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button onClick={handleCreateUser} className="btn-green">{t.save}</button>
+                <button onClick={() => setShowAddUser(false)} className="btn-secondary">{t.cancel}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Shift Modal */}
+      {editingShift && (
+        <div className="modal-overlay">
+          <div className="modal-bg-blur" style={{ position: 'absolute', inset: 0 }} onClick={() => setEditingShift(null)} />
+          <div className="modal-card" style={{ maxWidth: 480, position: 'relative', zIndex: 1 }}>
+            <h3>{t.editShift} — {formatDate(editingShift.date)}</h3>
+            <div className="modal-form">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">{t.checkInTimeLabel}</label>
+                  <input type="time" value={editForm.checkIn} onChange={e => setEditForm(f => ({ ...f, checkIn: e.target.value }))} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.checkOutTimeLabel}</label>
+                  <input type="time" value={editForm.checkOut} onChange={e => setEditForm(f => ({ ...f, checkOut: e.target.value }))} className="form-input" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.breakMinutes}</label>
+                <input type="number" value={editForm.breakMinutes || ''} onChange={e => setEditForm(f => ({ ...f, breakMinutes: Number(e.target.value) }))} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t.note}</label>
+                <textarea value={editForm.note} onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} className="form-input resize-none" rows={2} />
+              </div>
+              <div className="modal-actions">
+                <button onClick={handleSaveShift} className="btn-green">{t.save}</button>
+                <button onClick={() => setEditingShift(null)} className="btn-secondary">{t.cancel}</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

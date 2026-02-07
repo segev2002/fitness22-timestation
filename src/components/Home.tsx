@@ -39,6 +39,7 @@ const Home = ({ user }: HomeProps) => {
     if (active && active.userId === user.id) {
       setActiveShiftState(active);
       setIsInShift(true);
+      setActiveShift(active, user.id);
       // Load persisted note and dayType
       const savedNote = localStorage.getItem(`shift_note_${user.id}`);
       const savedDayType = localStorage.getItem(`shift_dayType_${user.id}`);

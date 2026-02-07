@@ -345,6 +345,28 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     };
     reader.readAsDataURL(file);
   };
+
+  const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+  };
+
+  const uploadPendingInvoices = async (items: ExpenseItem[]) => {
+    if (!isSupabaseConfigured()) return items;
+
+    const updatedItems = await Promise.all(items.map(async item => {
+      if (item.invoiceUrl || !item.invoiceBase64) return item;
+
+      const file = await dataUrlToFile(item.invoiceBase64, `invoice_${item.id}`);
+      const url = await supabaseExpenses.uploadInvoice(file, user.id, item.id);
+      if (!url) return item;
+
+      return { ...item, invoiceUrl: url, invoiceBase64: undefined };
+    }));
+
+    return updatedItems;
+  };
   
   // Save expense report
   const handleSave = async (submit = false) => {
@@ -354,6 +376,16 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
     try {
       const reportId = report?.id || uuidv4();
       
+      const [preparedNIS, preparedUSD, preparedEUR] = await Promise.all([
+        uploadPendingInvoices(itemsNIS),
+        uploadPendingInvoices(itemsUSD),
+        uploadPendingInvoices(itemsEUR),
+      ]);
+
+      setItemsNIS(preparedNIS);
+      setItemsUSD(preparedUSD);
+      setItemsEUR(preparedEUR);
+
       const reportData: ExpenseReport = {
         id: reportId,
         userId: user.id,
@@ -362,13 +394,13 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
   expensePeriod: getExpensePeriod(selectedMonth, selectedDay),
         checkedBy,
         approvedBy,
-        itemsNIS,
+  itemsNIS: preparedNIS,
         totalNIS: totals.totalNIS,
-        itemsUSD,
+  itemsUSD: preparedUSD,
         totalUSD: totals.totalUSD,
         exchangeRateUSD,
         totalUSDInNIS: totals.totalUSDInNIS,
-        itemsEUR,
+  itemsEUR: preparedEUR,
         totalEUR: totals.totalEUR,
         exchangeRateEUR,
         totalEURInNIS: totals.totalEURInNIS,
@@ -379,9 +411,9 @@ const ExpenseReportPage = ({ user }: ExpenseReportPageProps) => {
       };
       
       const allItems = [
-        ...itemsNIS.map(i => ({ ...i, expenseReportId: reportId })),
-        ...itemsUSD.map(i => ({ ...i, expenseReportId: reportId })),
-        ...itemsEUR.map(i => ({ ...i, expenseReportId: reportId })),
+        ...preparedNIS.map(i => ({ ...i, expenseReportId: reportId })),
+        ...preparedUSD.map(i => ({ ...i, expenseReportId: reportId })),
+        ...preparedEUR.map(i => ({ ...i, expenseReportId: reportId })),
       ];
       
       const success = await supabaseExpenses.save(reportData, allItems);

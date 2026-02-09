@@ -10,13 +10,36 @@ interface HomeProps { user: User; }
 
 const Home = ({ user }: HomeProps) => {
   const { t } = useLanguage();
-  const [activeShift, setActiveShift] = useState<ActiveShift | null>(null);
+  
+  /**
+   * ACTIVE SHIFT RESTORATION
+   * On mount, immediately restore from localStorage for instant display,
+   * then validate against Supabase in the background.
+   * This prevents the timer from resetting when switching views or re-logging in.
+   */
+  const [activeShift, setActiveShiftState] = useState<ActiveShift | null>(() => {
+    // Synchronously restore active shift from localStorage on mount
+    const stored = getActiveShift();
+    if (stored && stored.userId === user.id) return stored;
+    return null;
+  });
+  
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [note, setNote] = useState('');
   const [dayType, setDayType] = useState('office');
   const [breakMinutes, setBreakMinutes] = useState(0);
 
   const isInShift = !!activeShift;
+
+  /**
+   * Wrapper around setActiveShift that also persists to localStorage immediately.
+   * This ensures the active shift survives component unmounts, view switches, and logouts.
+   */
+  const updateActiveShift = (shift: ActiveShift | null) => {
+    setActiveShiftState(shift);
+    // Persist to localStorage synchronously so it's available instantly on next mount
+    saveActiveShift(shift, user.id);
+  };
 
   const loadShifts = useCallback(async () => {
     const now = new Date();
@@ -33,14 +56,27 @@ const Home = ({ user }: HomeProps) => {
   }, [user.id]);
 
   useEffect(() => {
+    /**
+     * BACKGROUND SYNC: Validate active shift against Supabase
+     * The initial state was already set synchronously from localStorage,
+     * this just ensures it's in sync with the server.
+     */
     const loadActive = async () => {
       if (isSupabaseConfigured()) {
         const active = await supabaseActiveShift.get(user.id);
-        setActiveShift(active);
-      } else {
-        const active = getActiveShift();
-        if (active && active.userId === user.id) setActiveShift(active);
+        if (active) {
+          setActiveShiftState(active);
+          saveActiveShift(active, user.id);
+        } else {
+          // Server says no active shift - check if we need to clear local
+          const local = getActiveShift();
+          if (local && local.userId === user.id) {
+            setActiveShiftState(null);
+            saveActiveShift(null, user.id);
+          }
+        }
       }
+      // For localStorage-only mode, the initial state is already correct
     };
     loadActive();
     loadShifts();
@@ -56,9 +92,8 @@ const Home = ({ user }: HomeProps) => {
     try {
       const now = new Date();
       const active: ActiveShift = { userId: user.id, userName: user.name, checkIn: now.toISOString(), startTime: now.getTime() };
-      setActiveShift(active);
+      updateActiveShift(active);
       if (isSupabaseConfigured()) { await supabaseActiveShift.set(active, user.id); }
-      else { saveActiveShift(active, user.id); }
     } catch (err) {
       console.error('handleCheckIn error:', err);
     }
@@ -82,9 +117,8 @@ const Home = ({ user }: HomeProps) => {
       };
 
       addShift(shift);
-      setActiveShift(null);
+      updateActiveShift(null);
       if (isSupabaseConfigured()) { await supabaseActiveShift.set(null, user.id); }
-      else { saveActiveShift(null, user.id); }
       setNote(''); setDayType('office'); setBreakMinutes(0);
       loadShifts();
     } catch (err) {

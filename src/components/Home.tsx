@@ -57,26 +57,30 @@ const Home = ({ user }: HomeProps) => {
 
   useEffect(() => {
     /**
-     * BACKGROUND SYNC: Validate active shift against Supabase
+     * BACKGROUND SYNC: Validate active shift against Supabase.
      * The initial state was already set synchronously from localStorage,
-     * this just ensures it's in sync with the server.
+     * this only *updates* if the server has a definitive active shift.
+     *
+     * IMPORTANT: We never clear the local active shift from this sync.
+     * Only an explicit user check-out should clear it.  If the server
+     * returns null it could be a transient RLS / network issue; wiping
+     * the local state here would reset the running timer.
      */
     const loadActive = async () => {
       if (isSupabaseConfigured()) {
-        const active = await supabaseActiveShift.get(user.id);
-        if (active) {
-          setActiveShiftState(active);
-          saveActiveShift(active, user.id);
-        } else {
-          // Server says no active shift - check if we need to clear local
-          const local = getActiveShift();
-          if (local && local.userId === user.id) {
-            setActiveShiftState(null);
-            saveActiveShift(null, user.id);
+        try {
+          const active = await supabaseActiveShift.get(user.id);
+          if (active) {
+            // Server confirms an active shift — update local to stay in sync
+            setActiveShiftState(active);
+            saveActiveShift(active, user.id);
           }
+          // If active is null we intentionally do NOT clear local state.
+          // The shift will be cleared only via handleCheckOut.
+        } catch (err) {
+          console.debug('Background active-shift sync failed (non-critical):', err);
         }
       }
-      // For localStorage-only mode, the initial state is already correct
     };
     loadActive();
     loadShifts();

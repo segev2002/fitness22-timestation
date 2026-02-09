@@ -32,6 +32,21 @@ const Home = ({ user }: HomeProps) => {
   const isInShift = !!activeShift;
 
   /**
+   * USER SWITCH HANDLER
+   * useState initializer only runs on first mount. If the `user` prop changes
+   * (e.g. logging out and in as a different user while Home stays mounted),
+   * we must manually re-read the correct active shift for the new user.
+   */
+  useEffect(() => {
+    const stored = getActiveShift();
+    if (stored && stored.userId === user.id) {
+      setActiveShiftState(stored);
+    } else {
+      setActiveShiftState(null);
+    }
+  }, [user.id]);
+
+  /**
    * Wrapper around setActiveShift that also persists to localStorage immediately.
    * This ensures the active shift survives component unmounts, view switches, and logouts.
    */

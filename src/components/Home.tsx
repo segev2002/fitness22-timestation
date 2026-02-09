@@ -19,7 +19,7 @@ const Home = ({ user }: HomeProps) => {
    */
   const [activeShift, setActiveShiftState] = useState<ActiveShift | null>(() => {
     // Synchronously restore active shift from localStorage on mount
-    const stored = getActiveShift();
+    const stored = getActiveShift(user.id);
     if (stored && stored.userId === user.id) return stored;
     return null;
   });
@@ -38,7 +38,7 @@ const Home = ({ user }: HomeProps) => {
    * we must manually re-read the correct active shift for the new user.
    */
   useEffect(() => {
-    const stored = getActiveShift();
+    const stored = getActiveShift(user.id);
     if (stored && stored.userId === user.id) {
       setActiveShiftState(stored);
     } else {

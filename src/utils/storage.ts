@@ -189,25 +189,59 @@ export const deleteShiftsByDates = (userId: string, dates: string[]): number => 
 };
 
 // localStorage operations for active shift
-const localGetActiveShift = (): ActiveShift | null => {
-  const data = localStorage.getItem(ACTIVE_SHIFT_KEY);
-  return data ? JSON.parse(data) : null;
+// Each user gets their own key so switching users never overwrites another user's timer
+const activeShiftKey = (userId?: string): string =>
+  userId ? `${ACTIVE_SHIFT_KEY}_${userId}` : ACTIVE_SHIFT_KEY;
+
+const localGetActiveShift = (userId?: string): ActiveShift | null => {
+  // Try user-specific key first, fall back to legacy shared key
+  if (userId) {
+    const data = localStorage.getItem(activeShiftKey(userId));
+    if (data) return JSON.parse(data);
+  }
+  // Fallback: legacy shared key (for shifts created before this change)
+  const legacy = localStorage.getItem(ACTIVE_SHIFT_KEY);
+  if (legacy) {
+    const parsed = JSON.parse(legacy) as ActiveShift;
+    if (!userId || parsed.userId === userId) return parsed;
+  }
+  return null;
 };
 
-const localSetActiveShift = (shift: ActiveShift | null): void => {
-  if (shift) {
-    safeSetItem(ACTIVE_SHIFT_KEY, JSON.stringify(shift));
+const localSetActiveShift = (shift: ActiveShift | null, userId?: string): void => {
+  const uid = userId || shift?.userId;
+  if (shift && uid) {
+    safeSetItem(activeShiftKey(uid), JSON.stringify(shift));
+    // Also clean up legacy key if it belongs to this user
+    const legacy = localStorage.getItem(ACTIVE_SHIFT_KEY);
+    if (legacy) {
+      try {
+        const parsed = JSON.parse(legacy) as ActiveShift;
+        if (parsed.userId === uid) localStorage.removeItem(ACTIVE_SHIFT_KEY);
+      } catch { /* ignore */ }
+    }
+  } else if (uid) {
+    localStorage.removeItem(activeShiftKey(uid));
+    // Also clean up legacy key if it belongs to this user
+    const legacy = localStorage.getItem(ACTIVE_SHIFT_KEY);
+    if (legacy) {
+      try {
+        const parsed = JSON.parse(legacy) as ActiveShift;
+        if (parsed.userId === uid) localStorage.removeItem(ACTIVE_SHIFT_KEY);
+      } catch { /* ignore */ }
+    }
   } else {
+    // No userId at all — remove legacy key
     localStorage.removeItem(ACTIVE_SHIFT_KEY);
   }
 };
 
-export const getActiveShift = (): ActiveShift | null => {
-  return localGetActiveShift();
+export const getActiveShift = (userId?: string): ActiveShift | null => {
+  return localGetActiveShift(userId);
 };
 
 export const setActiveShift = (shift: ActiveShift | null, userId?: string): void => {
-  localSetActiveShift(shift);
+  localSetActiveShift(shift, userId);
   
   // Also save to Supabase if configured (with retry)
   if (shouldUseSupabase() && userId) {
